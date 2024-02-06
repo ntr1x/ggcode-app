@@ -1,0 +1,3 @@
+[workspace]
+members = [ "ggcode_core", "ggcode_cli"]
+resolver = "2"
