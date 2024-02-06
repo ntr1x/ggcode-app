@@ -32,12 +32,11 @@ pub fn execute_install_command(context: ResolvedContext, _matches: &ArgMatches) 
         let mut builder = git2::build::RepoBuilder::new();
         builder.fetch_options(fo);
 
-        let repo = match builder.clone(repository.uri.as_str(), Path::new(".ggcode_modules/blabla")) {
+        let directory = format!("ggcode_modules/{}" , repository.name);
+        /*let repo = */match builder.clone(repository.uri.as_str(), Path::new(directory.as_str())) {
             Ok(repo) => repo,
             Err(e) => panic!("failed to clone: {}", e),
         };
-
-        println!("namespace: {}", repo.namespace().unwrap())
     }
 
     Ok(())

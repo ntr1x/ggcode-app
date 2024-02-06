@@ -5,13 +5,13 @@ use crate::commands::history::create_history_command;
 use crate::commands::init::{create_init_command, execute_init_command};
 use crate::commands::install::{create_install_command, execute_install_command};
 use crate::commands::repository::{create_repository_command, execute_repository_command};
-use crate::commands::target::{create_target_command, execute_target_command};
+use crate::commands::gen_target::{create_target_command, execute_target_command};
 
 pub mod history;
 pub mod init;
 pub mod install;
 pub mod repository;
-pub mod target;
+pub mod gen_target;
 
 pub fn create_cli_command() -> Command {
     command!()
