@@ -3,13 +3,13 @@ use serde::{Deserialize, Serialize};
 pub const DEFAULT_CONFIG_NAME: &str = "ggcode-info.yaml";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Repository {
+pub struct RepositoryEntry {
     pub name: String,
     pub uri: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Target {
+pub struct TargetEntry {
     pub name: String,
     pub path: String,
 }
@@ -25,7 +25,7 @@ pub struct Config {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub scrolls: Vec<ScrollEntry>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub repositories: Vec<Repository>,
+    pub repositories: Vec<RepositoryEntry>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub targets: Vec<Target>,
+    pub targets: Vec<TargetEntry>,
 }

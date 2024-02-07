@@ -3,8 +3,8 @@ use dialoguer::{Confirm, Input};
 use dialoguer::theme::ColorfulTheme;
 
 use ggcode_core::Context;
-use ggcode_core::config::{Config, Repository, ScrollEntry, Target};
-use crate::config::save_config;
+use ggcode_core::config::{Config, RepositoryEntry, ScrollEntry, TargetEntry};
+use crate::config::{resolve_inner_path, save_config};
 
 const REPOSITORY_CENTRAL_NAME: &str = "central";
 const REPOSITORY_CENTRAL_URI: &str = "git@github.com:ntr1x/com.ntr1x.setup.git";
@@ -40,7 +40,7 @@ pub fn execute_init_command(context: Context, _: &ArgMatches) -> Result<(), Box<
         repositories,
     };
 
-    save_config(&context.config_path, config)
+    save_config(&resolve_inner_path(&context.config_path)?, config)
 }
 
 fn setup_scrolls(config: &Option<Config>) -> Vec<ScrollEntry> {
@@ -50,8 +50,8 @@ fn setup_scrolls(config: &Option<Config>) -> Vec<ScrollEntry> {
     }
 }
 
-fn setup_repositories(config: &Option<Config>) -> Vec<Repository> {
-    let mut repositories: Vec<Repository> = vec![];
+fn setup_repositories(config: &Option<Config>) -> Vec<RepositoryEntry> {
+    let mut repositories: Vec<RepositoryEntry> = vec![];
 
     match config {
         Some(config) => {
@@ -77,7 +77,7 @@ fn setup_repositories(config: &Option<Config>) -> Vec<Repository> {
             .unwrap();
 
         if add_repository {
-            repositories.push(Repository {
+            repositories.push(RepositoryEntry {
                 name: REPOSITORY_CENTRAL_NAME.to_string(),
                 uri: REPOSITORY_CENTRAL_URI.to_string(),
             })
@@ -109,7 +109,7 @@ fn setup_repositories(config: &Option<Config>) -> Vec<Repository> {
         let added = !name.is_empty() && !uri.is_empty();
 
         if added {
-            repositories.push(Repository {
+            repositories.push(RepositoryEntry {
                 name,
                 uri
             });
@@ -125,8 +125,8 @@ fn setup_repositories(config: &Option<Config>) -> Vec<Repository> {
     repositories
 }
 
-fn setup_targets(config: &Option<Config>) -> Vec<Target> {
-    let mut targets: Vec<Target> = vec![];
+fn setup_targets(config: &Option<Config>) -> Vec<TargetEntry> {
+    let mut targets: Vec<TargetEntry> = vec![];
 
     match config {
         Some(config) => {
@@ -152,7 +152,7 @@ fn setup_targets(config: &Option<Config>) -> Vec<Target> {
             .unwrap();
 
         if add_target {
-            targets.push(Target {
+            targets.push(TargetEntry {
                 name: TARGET_WORKDIR_NAME.to_string(),
                 path: TARGET_WORKDIR_PATH.to_string(),
             })
@@ -184,7 +184,7 @@ fn setup_targets(config: &Option<Config>) -> Vec<Target> {
         let added = !name.is_empty() && !path.is_empty();
 
         if added {
-            targets.push(Target {
+            targets.push(TargetEntry {
                 name,
                 path
             });

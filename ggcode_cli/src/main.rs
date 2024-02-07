@@ -4,7 +4,7 @@ use ggcode_core::config::DEFAULT_CONFIG_NAME;
 use ggcode_core::Context;
 
 use crate::commands::{create_cli_command, execute_cli_command};
-use crate::config::load_config;
+use crate::config::{load_config, resolve_inner_path};
 
 mod config;
 mod commands;
@@ -18,7 +18,7 @@ pub fn load_context() -> Result<Context, Box<dyn std::error::Error>> {
         .unwrap()
         .to_string();
 
-    let current_config = load_config(DEFAULT_CONFIG_NAME.to_string()).ok();
+    let current_config = load_config(&resolve_inner_path(&DEFAULT_CONFIG_NAME.to_string())?).ok();
 
     let context = Context {
         config_path: DEFAULT_CONFIG_NAME.to_string(),

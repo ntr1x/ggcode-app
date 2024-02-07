@@ -1,16 +1,15 @@
 use std::collections::BTreeMap;
-use std::env;
 use std::error::Error;
-use std::path::Path;
 use clap::{arg, ArgMatches, Command};
 use indoc::{formatdoc, indoc};
 use prettytable::format::FormatBuilder;
 use prettytable::{format, row, Table};
+use relative_path::RelativePathBuf;
 use ggcode_core::config::{Config, ScrollEntry};
 
 use ggcode_core::ResolvedContext;
 use ggcode_core::scroll::{Scroll, ScrollCommand};
-use crate::config::{load_config, load_scroll, rm_scroll, save_config, save_scroll, save_string};
+use crate::config::{load_config, load_scroll, resolve_inner_path, rm_scroll, save_config, save_scroll, save_string};
 
 pub fn create_scroll_command() -> Command {
     Command::new("scroll")
@@ -56,31 +55,16 @@ pub fn execute_scroll_command(context: &ResolvedContext, matches: &ArgMatches) -
 
 fn execute_scroll_remove_command(context: &ResolvedContext, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
     let path = matches.get_one::<String>("path").unwrap();
+    let relative_path = resolve_inner_path(path)?;
 
-    let p = Path::new(path);
-
-    assert!(!path.starts_with(".."), "The \"scroll\" directory should be nested within the project directory.");
-    assert!(p.is_relative(), "The \"scroll\" directory should be defined relative to the project directory.");
-
-    let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
-
-    let p = &current_dir.join(path).canonicalize().unwrap();
-
-    let registration = context.current_config.scrolls
-        .iter()
-        .find(|r| {
-            match current_dir.join(&r.path).canonicalize().ok() {
-                None => false,
-                Some(rp) => rp.eq(p),
-            }
-        });
+    let registration = find_scroll_with_name(context, &relative_path);
 
     let scroll_entries: Vec<ScrollEntry> = context.current_config.scrolls
         .iter()
         .filter(|r| {
-            match current_dir.join(&r.path).canonicalize().ok() {
+            match resolve_inner_path(&r.path).ok() {
                 None => true,
-                Some(rp) => !rp.eq(p),
+                Some(rp) => !relative_path.eq(&rp),
             }
         })
         .map(|e| e.clone())
@@ -94,8 +78,8 @@ fn execute_scroll_remove_command(context: &ResolvedContext, matches: &ArgMatches
                 ..context.current_config.to_owned()
             };
 
-            save_config(&context.config_path, config)?;
-            rm_scroll(path).unwrap();
+            save_config(&resolve_inner_path(&context.config_path)?, config)?;
+            rm_scroll(&resolve_inner_path(path)?).unwrap();
 
             println!("Success!");
         }
@@ -104,31 +88,22 @@ fn execute_scroll_remove_command(context: &ResolvedContext, matches: &ArgMatches
     Ok(())
 }
 
-fn execute_scroll_add_command(context: &ResolvedContext, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
-    let path = matches.get_one::<String>("path").unwrap();
-
-    let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
-
-    let p = Path::new(path);
-
-    assert!(!path.starts_with(".."), "The \"scroll\" directory should be nested within the project directory.");
-    assert!(p.is_relative(), "The \"scroll\" directory should be defined relative to the project directory.");
-
-    let p = &current_dir.join(path).canonicalize().ok();
-
-    let duplicate = context.current_config.scrolls
+fn find_scroll_with_name<'a>(context: &'a ResolvedContext, relative_path: &RelativePathBuf) -> Option<&'a ScrollEntry> {
+    context.current_config.scrolls
         .iter()
         .find(|r| {
-            match current_dir.join(&r.path).canonicalize().ok() {
+            match resolve_inner_path(&r.path).ok() {
                 None => false,
-                Some(rp) => {
-                    match p {
-                        None => false,
-                        Some(p) => rp.eq(p)
-                    }
-                },
+                Some(rp) => relative_path.eq(&rp),
             }
-        });
+        })
+}
+
+fn execute_scroll_add_command(context: &ResolvedContext, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
+    let path = matches.get_one::<String>("path").unwrap();
+    let relative_path = resolve_inner_path(path)?;
+
+    let duplicate = find_scroll_with_name(context, &relative_path);
 
     match duplicate {
         Some(_) => {
@@ -144,7 +119,7 @@ fn execute_scroll_add_command(context: &ResolvedContext, matches: &ArgMatches) -
             };
 
             let scroll_entries = vec![
-                ScrollEntry { path: path.to_string() }
+                ScrollEntry { path: relative_path.to_string() }
             ];
 
             let config = Config {
@@ -166,10 +141,11 @@ fn execute_scroll_add_command(context: &ResolvedContext, matches: &ArgMatches) -
                   scroll: \"{scroll}\"
             ", author = "Developer", scroll = path);
 
-            save_string(&format!("{}/templates/README.md", path), readme.to_string())?;
-            save_string(&format!("{}/variables/variables.yaml", path), variables.to_string())?;
-            save_scroll(&format!("{}/ggcode-scroll.yaml", path), scroll)?;
-            save_config(&context.config_path, config)?;
+
+            save_string(&relative_path.join("templates/README.md"), readme.to_string())?;
+            save_string(&relative_path.join("variables/variables.yaml"), variables.to_string())?;
+            save_scroll(&relative_path.join("ggcode-scroll.yaml"), scroll)?;
+            save_config(&resolve_inner_path(&context.config_path)?, config)?;
 
             println!("Success!");
         }
@@ -179,22 +155,18 @@ fn execute_scroll_add_command(context: &ResolvedContext, matches: &ArgMatches) -
 }
 
 fn execute_scroll_list_command(context: &ResolvedContext, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
-    let mut scrolls: BTreeMap<String, Scroll> = BTreeMap::new();
+    let mut scrolls: BTreeMap<String, Option<Scroll>> = BTreeMap::new();
 
     for repository in context.current_config.repositories.iter() {
         let repository_path = format!("ggcode_modules/{}", repository.name);
         let config_path = format!("{}/ggcode-info.yaml", repository_path);
-        match load_config(config_path).ok() {
+        match load_config(&resolve_inner_path(&config_path)?).ok() {
             None => {},
             Some(repository_config) => {
                 for scroll_entry in repository_config.scrolls {
                     let scroll_config_path = format!("{}/{}/ggcode-scroll.yaml", repository_path, scroll_entry.path);
-                    match load_scroll(scroll_config_path).ok() {
-                        None => {},
-                        Some(scroll) => {
-                            scrolls.insert(format!("{}/{}", repository.name, scroll_entry.path), scroll);
-                        },
-                    }
+                    let scroll = load_scroll(&resolve_inner_path(&scroll_config_path)?).ok();
+                    scrolls.insert(format!("{}/{}", repository.name, scroll_entry.path), scroll);
                 }
             },
         }
@@ -202,12 +174,8 @@ fn execute_scroll_list_command(context: &ResolvedContext, matches: &ArgMatches) 
 
     for scroll_entry in &context.current_config.scrolls {
         let scroll_config_path = format!("{}/ggcode-scroll.yaml", scroll_entry.path);
-        match load_scroll(scroll_config_path).ok() {
-            None => {},
-            Some(scroll) => {
-                scrolls.insert(format!("@/{}", scroll_entry.path), scroll);
-            },
-        }
+        let scroll = load_scroll(&resolve_inner_path(&scroll_config_path)?).ok();
+        scrolls.insert(format!("@/{}", scroll_entry.path), scroll);
     }
 
     let mut table = Table::new();
@@ -218,12 +186,16 @@ fn execute_scroll_list_command(context: &ResolvedContext, matches: &ArgMatches) 
     };
 
     table.set_format(format);
-    table.set_titles(row!["#", "Name"]);
+    table.set_titles(row!["#", "Name", "Is Valid"]);
 
     for (i, (name, scroll)) in scrolls.iter().enumerate() {
         table.add_row(row![
             format!("{}", i + 1).as_str(),
-            name.as_str()
+            name.as_str(),
+            match scroll {
+                Some(_) => "valid",
+                None => "invalid",
+            }
         ]);
     }
 

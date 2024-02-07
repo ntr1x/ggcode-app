@@ -5,8 +5,8 @@ use prettytable::{format, row, Table};
 use prettytable::format::FormatBuilder;
 
 use ggcode_core::ResolvedContext;
-use ggcode_core::config::{Config, Repository};
-use crate::config::save_config;
+use ggcode_core::config::{Config, RepositoryEntry};
+use crate::config::{resolve_inner_path, save_config};
 
 pub fn create_repository_command() -> Command {
     Command::new("repository")
@@ -53,7 +53,7 @@ pub fn execute_repository_command(context: ResolvedContext, matches: &ArgMatches
 fn execute_repository_remove_command(context: ResolvedContext, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
     let name = matches.get_one::<String>("name").unwrap();
 
-    let repositories: Vec<Repository> = context.current_config.repositories
+    let repositories: Vec<RepositoryEntry> = context.current_config.repositories
         .into_iter()
         .filter(|r| &r.name != name)
         .collect();
@@ -63,7 +63,7 @@ fn execute_repository_remove_command(context: ResolvedContext, matches: &ArgMatc
         ..context.current_config
     };
 
-    save_config(&context.config_path, config)?;
+    save_config(&resolve_inner_path(&context.config_path)?, config)?;
 
     Ok(())
 }
@@ -77,7 +77,7 @@ fn execute_repository_add_command(context: ResolvedContext, matches: &ArgMatches
         .find(|r| r.name.eq(name));
 
     if duplicate.is_none() {
-        let repositories = vec![Repository {
+        let repositories = vec![RepositoryEntry {
             name: name.to_string(),
             uri: uri.to_string(),
         }];
@@ -86,7 +86,7 @@ fn execute_repository_add_command(context: ResolvedContext, matches: &ArgMatches
             ..context.current_config
         };
 
-        save_config(&context.config_path, config)?;
+        save_config(&resolve_inner_path(&context.config_path)?, config)?;
     }
 
     Ok(())

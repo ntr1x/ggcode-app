@@ -3,8 +3,8 @@ use clap::{arg, ArgMatches, Command};
 use prettytable::format::FormatBuilder;
 use prettytable::{format, row, Table};
 use ggcode_core::ResolvedContext;
-use ggcode_core::config::{Config, Target};
-use crate::config::save_config;
+use ggcode_core::config::{Config, TargetEntry};
+use crate::config::{resolve_inner_path, save_config};
 
 pub fn create_target_command() -> Command {
     Command::new("target")
@@ -51,7 +51,7 @@ pub fn execute_target_command(context: ResolvedContext, matches: &ArgMatches) ->
 fn execute_target_remove_command(context: ResolvedContext, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
     let name = matches.get_one::<String>("name").unwrap();
 
-    let targets: Vec<Target> = context.current_config.targets
+    let targets: Vec<TargetEntry> = context.current_config.targets
         .into_iter()
         .filter(|r| &r.name != name)
         .collect();
@@ -61,7 +61,7 @@ fn execute_target_remove_command(context: ResolvedContext, matches: &ArgMatches)
         ..context.current_config
     };
 
-    save_config(&context.config_path, config)?;
+    save_config(&resolve_inner_path(&context.config_path)?, config)?;
 
     Ok(())
 }
@@ -75,7 +75,7 @@ fn execute_target_add_command(context: ResolvedContext, matches: &ArgMatches) ->
         .find(|r| r.name.eq(name));
 
     if duplicate.is_none() {
-        let targets = vec![Target {
+        let targets = vec![TargetEntry {
             name: name.to_string(),
             path: path.to_string(),
         }];
@@ -84,7 +84,7 @@ fn execute_target_add_command(context: ResolvedContext, matches: &ArgMatches) ->
             ..context.current_config
         };
 
-        save_config(&context.config_path, config)?;
+        save_config(&resolve_inner_path(&context.config_path)?, config)?;
     }
 
     Ok(())

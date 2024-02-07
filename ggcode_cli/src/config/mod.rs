@@ -1,12 +1,21 @@
 use std::env;
 use std::error::Error;
 use std::io::Write;
-use std::path::Path;
+use relative_path::{RelativePath, RelativePathBuf};
 
 use ggcode_core::config::Config;
 use ggcode_core::scroll::Scroll;
 
-pub fn save_config(path: &String, config: Config) -> Result<(), Box<dyn Error>> {
+pub fn resolve_inner_path(path: &String) -> Result<RelativePathBuf, Box<dyn Error>> {
+    let relative_path = RelativePath::new(path).normalize();
+    assert!(!relative_path.starts_with(".."), "Could not leave base directory");
+    Ok(relative_path)
+}
+
+pub fn save_config(relative_path: &RelativePathBuf, config: Config) -> Result<(), Box<dyn Error>> {
+    let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
+    let path = relative_path.to_path(current_dir);
+
     let f = std::fs::OpenOptions::new()
         .write(true)
         .truncate(true)
@@ -19,40 +28,26 @@ pub fn save_config(path: &String, config: Config) -> Result<(), Box<dyn Error>> 
     Ok(())
 }
 
-pub fn rm_scroll(path: &String) -> Result<(), Box<dyn Error>> {
-    let p = Path::new(path);
-
-    assert!(!path.starts_with(".."), "The \"scroll\" directory should be nested within the project directory.");
-    assert!(p.is_relative(), "The \"scroll\" directory should be defined relative to the project directory.");
-
+pub fn rm_scroll(relative_path: &RelativePathBuf) -> Result<(), Box<dyn Error>> {
     let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
-    let scroll_path = current_dir.join(path).canonicalize().unwrap();
+    let path = relative_path.to_path(current_dir);
 
-    assert!(scroll_path.starts_with(current_dir), "The \"scroll\" directory should be nested within the project directory.");
-
-    std::fs::remove_dir_all(scroll_path).unwrap();
-
+    std::fs::remove_dir_all(path).unwrap();
     Ok(())
 }
 
-pub fn save_scroll(path: &String, scroll: Scroll) -> Result<(), Box<dyn Error>> {
-    let p = Path::new(path);
-
-    assert!(!path.starts_with(".."), "The \"scroll\" directory should be nested within the project directory.");
-    assert!(p.is_relative(), "The \"scroll\" directory should be defined relative to the project directory.");
-
+pub fn save_scroll(relative_path: &RelativePathBuf, scroll: Scroll) -> Result<(), Box<dyn Error>> {
     let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
+    let path = relative_path.to_path(current_dir);
 
-    let p = current_dir.join(path);
-
-    let prefix = p.parent().unwrap();
+    let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).unwrap();
 
     let f = std::fs::OpenOptions::new()
         .write(true)
         .truncate(true)
         .create(true)
-        .open(p)
+        .open(path)
         .expect("Couldn't open scroll file");
 
     serde_yaml::to_writer(f, &scroll).unwrap();
@@ -60,31 +55,37 @@ pub fn save_scroll(path: &String, scroll: Scroll) -> Result<(), Box<dyn Error>> 
     Ok(())
 }
 
-pub fn save_string(path: &String, content: String) -> Result<(), Box<dyn Error>> {
-    let p = Path::new(path);
+pub fn save_string(relative_path: &RelativePathBuf, content: String) -> Result<(), Box<dyn Error>> {
+    let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
+    let path = relative_path.to_path(current_dir);
 
-    let prefix = p.parent().unwrap();
+    let prefix = path.parent().unwrap();
     std::fs::create_dir_all(prefix).unwrap();
 
     let mut f = std::fs::OpenOptions::new()
         .write(true)
         .truncate(true)
         .create(true)
-        .open(p)
+        .open(path)
         .expect("Couldn't open scroll file");
 
     f.write_all(content.as_bytes()).unwrap();
     Ok(())
 }
 
+pub fn load_config(relative_path: &RelativePathBuf) -> Result<Config, Box<dyn Error>> {
+    let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
+    let path = relative_path.to_path(current_dir);
 
-pub fn load_config(path: String) -> Result<Config, Box<dyn Error>> {
     let f = std::fs::File::open(path)?;
     let config = serde_yaml::from_reader(f)?;
     Ok(config)
 }
 
-pub fn load_scroll(path: String) -> Result<Scroll, Box<dyn Error>> {
+pub fn load_scroll(relative_path: &RelativePathBuf) -> Result<Scroll, Box<dyn Error>> {
+    let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
+    let path = relative_path.to_path(current_dir);
+
     let f = std::fs::File::open(path)?;
     let config = serde_yaml::from_reader(f)?;
     Ok(config)
