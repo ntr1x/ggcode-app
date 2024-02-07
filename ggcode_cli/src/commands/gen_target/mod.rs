@@ -2,7 +2,8 @@ use std::error::Error;
 use clap::{arg, ArgMatches, Command};
 use prettytable::format::FormatBuilder;
 use prettytable::{format, row, Table};
-use ggcode_core::{Config, ResolvedContext, Target};
+use ggcode_core::ResolvedContext;
+use ggcode_core::config::{Config, Target};
 use crate::config::save_config;
 
 pub fn create_target_command() -> Command {

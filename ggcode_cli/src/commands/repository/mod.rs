@@ -4,7 +4,8 @@ use clap::{arg, ArgMatches, Command};
 use prettytable::{format, row, Table};
 use prettytable::format::FormatBuilder;
 
-use ggcode_core::{Config, Repository, ResolvedContext};
+use ggcode_core::ResolvedContext;
+use ggcode_core::config::{Config, Repository};
 use crate::config::save_config;
 
 pub fn create_repository_command() -> Command {

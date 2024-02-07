@@ -2,7 +2,8 @@ use clap::{ArgMatches, Command};
 use dialoguer::{Confirm, Input};
 use dialoguer::theme::ColorfulTheme;
 
-use ggcode_core::{Config, Context, Repository, Target};
+use ggcode_core::Context;
+use ggcode_core::config::{Config, Repository, ScrollEntry, Target};
 use crate::config::save_config;
 
 const REPOSITORY_CENTRAL_NAME: &str = "central";
@@ -30,14 +31,23 @@ pub fn execute_init_command(context: Context, _: &ArgMatches) -> Result<(), Box<
 
     let repositories = setup_repositories(&context.current_config);
     let targets = setup_targets(&context.current_config);
+    let scrolls = setup_scrolls(&context.current_config);
 
     let config = Config {
         name,
+        scrolls,
         targets,
         repositories,
     };
 
     save_config(&context.config_path, config)
+}
+
+fn setup_scrolls(config: &Option<Config>) -> Vec<ScrollEntry> {
+    match config {
+        None => vec!(),
+        Some(config) => config.scrolls.clone()
+    }
 }
 
 fn setup_repositories(config: &Option<Config>) -> Vec<Repository> {
@@ -189,79 +199,3 @@ fn setup_targets(config: &Option<Config>) -> Vec<Target> {
 
     targets
 }
-
-// fn bootstrap(context) -> Result<(), Box<dyn std::error::Error>>{
-//     let name = Input::with_theme(&ColorfulTheme::default())
-//         .with_prompt("Project name")
-//         .default(env::current_dir()
-//             .ok()
-//             .unwrap()
-//             .file_name()
-//             .unwrap()
-//             .to_str()
-//             .unwrap()
-//             .to_string())
-//         .interact_text()
-//         .unwrap();
-//
-//     let repository = Input::with_theme(&ColorfulTheme::default())
-//         .with_prompt("Project name")
-//         .default("git@github.com:ntr1x/com.ntr1x.setup.git".to_string())
-//         .interact_text()
-//         .unwrap();
-//
-//     let config = Config {
-//         name,
-//         repositories: vec![
-//             Repository { uri: repository }
-//         ]
-//     };
-//
-//     let f = std::fs::OpenOptions::new()
-//         .write(true)
-//         .create(true)
-//         .open("ggcode-info.yaml")
-//         .expect("Couldn't open file");
-//
-//     serde_yaml::to_writer(f, &config).unwrap();
-//
-//     Ok(())
-// }
-//
-// fn bootstrap() -> Result<(), Box<dyn std::error::Error>>{
-//     let name = Input::with_theme(&ColorfulTheme::default())
-//         .with_prompt("Project name")
-//         .default(env::current_dir()
-//             .ok()
-//             .unwrap()
-//             .file_name()
-//             .unwrap()
-//             .to_str()
-//             .unwrap()
-//             .to_string())
-//         .interact_text()
-//         .unwrap();
-//
-//     let repository = Input::with_theme(&ColorfulTheme::default())
-//         .with_prompt("Project name")
-//         .default("git@github.com:ntr1x/com.ntr1x.setup.git".to_string())
-//         .interact_text()
-//         .unwrap();
-//
-//     let config = Config {
-//         name,
-//         repositories: vec![
-//             Repository { uri: repository }
-//         ]
-//     };
-//
-//     let f = std::fs::OpenOptions::new()
-//         .write(true)
-//         .create(true)
-//         .open("ggcode-info.yaml")
-//         .expect("Couldn't open file");
-//
-//     serde_yaml::to_writer(f, &config).unwrap();
-//
-//     Ok(())
-// }
