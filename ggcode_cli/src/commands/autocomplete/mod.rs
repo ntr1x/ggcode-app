@@ -12,10 +12,10 @@ pub fn create_autocomplete_command() -> Command {
         .arg(arg!(-g --generator).action(ArgAction::Set).value_parser(value_parser!(Shell)))
 }
 
-pub fn execute_autocomplete_command(_context: &Context, matches: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
+pub fn execute_autocomplete_command(context: &Context, matches: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let generator = matches.get_one::<Shell>("generator").copied().unwrap();
 
-    let mut cmd = create_cli_command();
+    let mut cmd = create_cli_command(context);
     eprintln!("Generating completion file for {generator}...");
     print_completions(generator, &mut cmd);
     Ok(())

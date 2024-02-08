@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use std::error::Error;
 use clap::{arg, ArgMatches, Command};
 use indoc::{formatdoc, indoc};
@@ -9,12 +8,13 @@ use ggcode_core::config::{Config, ScrollEntry};
 
 use ggcode_core::ResolvedContext;
 use ggcode_core::scroll::{Scroll, ScrollCommand};
-use crate::config::{load_config, load_scroll, resolve_inner_path, rm_scroll, save_config, save_scroll, save_string};
+use crate::config::{load_scroll, resolve_inner_path, rm_scroll, save_config, save_scroll, save_string};
+use crate::structure::list_scrolls;
 
 pub fn create_scroll_command() -> Command {
     Command::new("scroll")
         .about("Manage set of scrolls")
-        .alias("g")
+        .alias("s")
         .allow_external_subcommands(true)
         .arg_required_else_help(true)
         .subcommand(create_scroll_list_command())
@@ -155,28 +155,7 @@ fn execute_scroll_add_command(context: &ResolvedContext, matches: &ArgMatches) -
 }
 
 fn execute_scroll_list_command(context: &ResolvedContext, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
-    let mut scrolls: BTreeMap<String, Option<Scroll>> = BTreeMap::new();
-
-    for repository in context.current_config.repositories.iter() {
-        let repository_path = format!("ggcode_modules/{}", repository.name);
-        let config_path = format!("{}/ggcode-info.yaml", repository_path);
-        match load_config(&resolve_inner_path(&config_path)?).ok() {
-            None => {},
-            Some(repository_config) => {
-                for scroll_entry in repository_config.scrolls {
-                    let scroll_config_path = format!("{}/{}/ggcode-scroll.yaml", repository_path, scroll_entry.path);
-                    let scroll = load_scroll(&resolve_inner_path(&scroll_config_path)?).ok();
-                    scrolls.insert(format!("{}/{}", repository.name, scroll_entry.path), scroll);
-                }
-            },
-        }
-    }
-
-    for scroll_entry in &context.current_config.scrolls {
-        let scroll_config_path = format!("{}/ggcode-scroll.yaml", scroll_entry.path);
-        let scroll = load_scroll(&resolve_inner_path(&scroll_config_path)?).ok();
-        scrolls.insert(format!("@/{}", scroll_entry.path), scroll);
-    }
+    let mut scrolls = list_scrolls(context);
 
     let mut table = Table::new();
 

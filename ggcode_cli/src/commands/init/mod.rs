@@ -18,14 +18,14 @@ pub fn create_init_command() -> Command {
         // .allow_external_subcommands(true)
 }
 
-pub fn execute_init_command(context: Context, _: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
+pub fn execute_init_command(context: &Context, _: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let name = Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Project name")
-        // .default(format!("{}", context.current_config.as_ref().unwrap().name))
         .default(context.current_config
             .as_ref()
             .map(|config| -> String { format!("{}", config.name) })
-            .or(Some(context.directory_name)).unwrap())
+            .unwrap_or(context.directory_name.clone())
+        )
         .interact_text()
         .unwrap();
 

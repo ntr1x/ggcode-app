@@ -8,6 +8,7 @@ use crate::config::{load_config, resolve_inner_path};
 
 mod config;
 mod commands;
+mod structure;
 
 pub fn load_context() -> Result<Context, Box<dyn std::error::Error>> {
     let directory_path = env::current_dir()?;
@@ -33,7 +34,7 @@ pub fn load_context() -> Result<Context, Box<dyn std::error::Error>> {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let context = load_context()?;
 
-    let cli = create_cli_command();
+    let cli = create_cli_command(&context);
     let matches = cli.get_matches();
-    execute_cli_command(context, &matches)
+    execute_cli_command(&context, &matches)
 }
