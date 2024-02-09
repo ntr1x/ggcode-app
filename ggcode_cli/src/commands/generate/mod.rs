@@ -1,12 +1,14 @@
 use std::error::Error;
 
-use clap::{Arg, ArgMatches, Command};
-use indoc::printdoc;
+use clap::{Arg, arg, ArgMatches, Command};
+use console::style;
+use relative_path::RelativePathBuf;
 
 use ggcode_core::{Context, ResolvedContext};
 use ggcode_core::scroll::{Scroll, ScrollCommand};
 
-use crate::config::{load_templates, load_variables, resolve_package_path};
+use crate::config::{load_templates, load_variables, resolve_package_path, resolve_target_path, save_target_file};
+use crate::greetings::create_progress_bar;
 use crate::renderer::Renderer;
 use crate::structure::list_scrolls;
 
@@ -59,12 +61,14 @@ pub fn create_generate_scroll_command(context: &ResolvedContext, scroll_name: &S
 
 pub fn create_generate_scroll_spell_command(_context: &ResolvedContext, _scroll_name: &String, _scroll: &Scroll, scroll_command: &ScrollCommand) -> Command {
     let mut subcommand = Command::new(&scroll_command.name)
-        .about(scroll_command.about.clone().unwrap_or("Casting a magical spell".to_string()));
+        .about(scroll_command.about.clone().unwrap_or("Casting a magical spell".to_string()))
+        .arg(arg!(-t --target <target> "The name of a well-known target").required(true))
+        .arg_required_else_help(true);
 
     match scroll_command.args.len() {
         0 => {},
         _ => {
-            subcommand = subcommand.arg_required_else_help(true);
+            // subcommand = subcommand.arg_required_else_help(true);
             for arg_entry in &scroll_command.args {
                 let arg = Arg::new(&arg_entry.name)
                     .long(&arg_entry.name)
@@ -80,12 +84,29 @@ pub fn create_generate_scroll_spell_command(_context: &ResolvedContext, _scroll_
 
 pub fn execute_generate_command(context: &ResolvedContext, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
     match matches.subcommand() {
-        Some((name, sub_matches)) => execute_generate_do_command(context, &name.to_string(), sub_matches),
+        Some((name, sub_matches)) => execute_generate_scroll_command(context, &name.to_string(), sub_matches),
         _ => unreachable!()
     }
 }
 
-fn execute_generate_do_command(_context: &ResolvedContext, name: &String, _matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
+pub fn execute_generate_scroll_command(context: &ResolvedContext, name: &String, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
+    match matches.subcommand() {
+        Some((spell, sub_matches)) => execute_generate_scroll_spell_command(context, name, &spell.to_string(), sub_matches),
+        _ => unreachable!()
+    }
+}
+
+fn execute_generate_scroll_spell_command(context: &ResolvedContext, name: &String, _spell: &String, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
+    let target = matches.get_one::<String>("target").unwrap();
+
+    let known_target = context.current_config.targets
+        .iter()
+        .find(|t| &t.name == target)
+        .ok_or(format!("Unknown target: `{}`", style(target).red()).as_str())?;
+
+    let target_path = resolve_target_path(&known_target.path)
+        .expect("Cannot resolve target path");
+
     let path = resolve_package_path(name)?;
     let values_directory_path = path.join("variables");
 
@@ -108,17 +129,17 @@ fn execute_generate_do_command(_context: &ResolvedContext, name: &String, _match
 
     let renderer = builder.build()?;
 
-    for (key, value) in &templates {
+    for (key, _value) in &templates {
+        let pb = create_progress_bar();
+        pb.set_message(format!("Generating file using `{}` template ...", key));
         let file_name = renderer.render(format!("raw:{}", key))?;
         let file_content = renderer.render(format!("path:{}", key))?;
+        let file_relative_path = RelativePathBuf::from(file_name);
 
-        printdoc!("
-            =============================
-            Target file: {}
-            -----------------------------
-            {}
-            =============================
-        ", file_name, file_content)
+        save_target_file(&target_path, &file_relative_path, &file_content)?;
+
+        let file_path = file_relative_path.to_path(&target_path).canonicalize().unwrap();
+        pb.finish_with_message(format!("{} Generated file: {}", style("[DONE]").green(), file_path.to_str().unwrap().to_string()))
     }
 
     Ok(())

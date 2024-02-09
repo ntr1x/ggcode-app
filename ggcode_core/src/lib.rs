@@ -33,7 +33,9 @@ impl Context {
                     current_config: config.clone()
                 }
             ),
-            None => panic!("Cannot resolve config")
+            None => {
+                return Err("Cannot resolve context".into())
+            }
         }
     }
 }

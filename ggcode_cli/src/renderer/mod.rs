@@ -21,7 +21,7 @@ impl Renderer {
             Ok(string) => Ok(string),
             Err(e) => {
                 println!("{}", e.source().unwrap().to_string());
-                panic!("{}", e)
+                return Err(e.into())
             }
         }
     }

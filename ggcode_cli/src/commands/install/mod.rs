@@ -1,16 +1,15 @@
 use std::collections::BTreeMap;
 use std::env;
 use std::path::PathBuf;
-use std::time::Duration;
 
 use clap::{ArgMatches, Command};
 use console::style;
-use indicatif::{ProgressBar, ProgressStyle};
 use relative_path::RelativePathBuf;
 use ggcode_core::config::RepositoryEntry;
 
 use ggcode_core::ResolvedContext;
 use crate::config::{load_config, resolve_inner_path};
+use crate::greetings::create_progress_bar;
 
 pub fn create_install_command() -> Command {
     Command::new("install")
@@ -133,25 +132,4 @@ fn download_repo(current_dir: &PathBuf, modules_path: &RelativePathBuf, name: &S
             }
         }
     };
-}
-
-fn create_progress_bar() -> ProgressBar {
-    let pb = ProgressBar::new_spinner();
-    pb.enable_steady_tick(Duration::from_millis(120));
-    pb.set_style(
-        ProgressStyle::with_template("{spinner:.blue} {msg}")
-            .unwrap()
-            // For more spinners check out the cli-spinners project:
-            // https://github.com/sindresorhus/cli-spinners/blob/master/spinners.json
-            .tick_strings(&[
-                "▹▹▹▹▹",
-                "▸▹▹▹▹",
-                "▹▸▹▹▹",
-                "▹▹▸▹▹",
-                "▹▹▹▸▹",
-                "▹▹▹▹▸",
-                "▪▪▪▪▪",
-            ]),
-    );
-    return pb;
 }

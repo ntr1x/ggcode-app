@@ -13,6 +13,13 @@ use ggcode_core::scroll::Scroll;
 
 use crate::utils::merge_yaml;
 
+pub fn resolve_target_path(path: &String) -> Result<PathBuf, Box<dyn Error>> {
+    let relative_path = RelativePath::new(path).normalize();
+    let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
+    let target_path = relative_path.to_path(&current_dir);
+    Ok(target_path)
+}
+
 pub fn resolve_package_path(path: &String) -> Result<RelativePathBuf, Box<dyn Error>> {
     let relative_path = RelativePath::new(path).normalize();
     if relative_path.starts_with("@") {
@@ -84,6 +91,23 @@ pub fn save_string(relative_path: &RelativePathBuf, content: String) -> Result<(
         .create(true)
         .open(path)
         .expect("Couldn't open scroll file");
+
+    f.write_all(content.as_bytes()).unwrap();
+    Ok(())
+}
+
+pub fn save_target_file(target_dir: &PathBuf, relative_path: &RelativePathBuf, content: &String) -> Result<(), Box<dyn Error>> {
+    let path = relative_path.to_path(target_dir);
+
+    let prefix = path.parent().unwrap();
+    std::fs::create_dir_all(prefix).unwrap();
+
+    let mut f = std::fs::OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .create(true)
+        .open(path)
+        .expect("Couldn't open target file");
 
     f.write_all(content.as_bytes()).unwrap();
     Ok(())

@@ -1,18 +1,24 @@
 use std::env;
+use std::error::Error;
+use std::process::ExitCode;
+
+use ::console::style;
 
 use ggcode_core::config::DEFAULT_CONFIG_NAME;
 use ggcode_core::Context;
 
 use crate::commands::{create_cli_command, execute_cli_command};
 use crate::config::{load_config, resolve_inner_path};
+use crate::greetings::generate_wishes;
 
 mod config;
 mod commands;
 mod structure;
 mod renderer;
 mod utils;
+mod greetings;
 
-pub fn load_context() -> Result<Context, Box<dyn std::error::Error>> {
+pub fn load_context() -> Result<Context, Box<dyn Error>> {
     let directory_path = env::current_dir()?;
     let directory_name = directory_path
         .file_name()
@@ -33,10 +39,22 @@ pub fn load_context() -> Result<Context, Box<dyn std::error::Error>> {
     Ok(context)
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn execute() -> Result<(), Box<dyn Error>> {
     let context = load_context()?;
-
     let cli = create_cli_command(&context);
     let matches = cli.get_matches();
     execute_cli_command(&context, &matches)
+}
+
+fn main() -> ExitCode {
+    match execute() {
+        Ok(()) => {
+            println!("{} {}", style("[SUCCESS]").green(), generate_wishes());
+            ExitCode::SUCCESS
+        },
+        Err(e) => {
+            println!("{} {}", style("[FAILURE]").red(), e);
+            ExitCode::FAILURE
+        }
+    }
 }

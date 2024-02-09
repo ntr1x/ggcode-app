@@ -70,6 +70,8 @@ fn execute_target_add_command(context: ResolvedContext, matches: &ArgMatches) ->
     let name = matches.get_one::<String>("name").unwrap();
     let path = matches.get_one::<String>("path").unwrap();
 
+    println!("path: {}", path);
+
     let duplicate = context.current_config.targets
         .iter()
         .find(|r| r.name.eq(name));

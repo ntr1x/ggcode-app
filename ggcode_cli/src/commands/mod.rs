@@ -47,6 +47,6 @@ pub fn execute_cli_command(context: &Context, matches: &ArgMatches) -> Result<()
         Some(("scroll", sub_matches)) => execute_scroll_command(&context.resolve()?, sub_matches),
         Some(("autocomplete", sub_matches)) => execute_autocomplete_command(&context, sub_matches),
         Some(("generate", sub_matches)) => execute_generate_command(&context.resolve()?, sub_matches),
-        _ => panic!()
+        _ => return Err("Unsupported command".into())
     }
 }

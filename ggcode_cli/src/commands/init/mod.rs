@@ -10,7 +10,7 @@ const REPOSITORY_CENTRAL_NAME: &str = "central";
 const REPOSITORY_CENTRAL_URI: &str = "git@github.com:ntr1x/com.ntr1x.setup.git";
 
 const TARGET_WORKDIR_NAME: &str = "@";
-const TARGET_WORKDIR_PATH: &str = ".";
+const TARGET_WORKDIR_PATH: &str = "target";
 
 pub fn create_init_command() -> Command {
     Command::new("init")
