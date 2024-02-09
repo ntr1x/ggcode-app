@@ -8,7 +8,7 @@ use ggcode_core::config::{Config, ScrollEntry};
 
 use ggcode_core::ResolvedContext;
 use ggcode_core::scroll::{Scroll, ScrollCommand};
-use crate::config::{load_scroll, resolve_inner_path, rm_scroll, save_config, save_scroll, save_string};
+use crate::config::{resolve_inner_path, rm_scroll, save_config, save_scroll, save_string};
 use crate::structure::list_scrolls;
 
 pub fn create_scroll_command() -> Command {
@@ -155,7 +155,7 @@ fn execute_scroll_add_command(context: &ResolvedContext, matches: &ArgMatches) -
 }
 
 fn execute_scroll_list_command(context: &ResolvedContext, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
-    let mut scrolls = list_scrolls(context);
+    let scrolls = list_scrolls(context);
 
     let mut table = Table::new();
 

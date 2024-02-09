@@ -9,6 +9,8 @@ use crate::config::{load_config, resolve_inner_path};
 mod config;
 mod commands;
 mod structure;
+mod renderer;
+mod utils;
 
 pub fn load_context() -> Result<Context, Box<dyn std::error::Error>> {
     let directory_path = env::current_dir()?;

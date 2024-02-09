@@ -1,10 +1,13 @@
 use std::error::Error;
 
 use clap::{Arg, ArgMatches, Command};
+use indoc::printdoc;
 
 use ggcode_core::{Context, ResolvedContext};
 use ggcode_core::scroll::{Scroll, ScrollCommand};
 
+use crate::config::{load_templates, load_variables, resolve_package_path};
+use crate::renderer::Renderer;
 use crate::structure::list_scrolls;
 
 pub fn create_generate_command(context: &Context) -> Command {
@@ -16,7 +19,6 @@ pub fn create_generate_command(context: &Context) -> Command {
     match context.resolve() {
         Ok(resolved_context) => {
             let scrolls = list_scrolls(&resolved_context);
-
             for (name, scroll) in scrolls {
                 if let Some(scroll) = scroll {
                     let subcommand = create_generate_scroll_command(&resolved_context, &name, &scroll);
@@ -55,7 +57,7 @@ pub fn create_generate_scroll_command(context: &ResolvedContext, scroll_name: &S
     command
 }
 
-pub fn create_generate_scroll_spell_command(context: &ResolvedContext, scroll_name: &String, scroll: &Scroll, scroll_command: &ScrollCommand) -> Command {
+pub fn create_generate_scroll_spell_command(_context: &ResolvedContext, _scroll_name: &String, _scroll: &Scroll, scroll_command: &ScrollCommand) -> Command {
     let mut subcommand = Command::new(&scroll_command.name)
         .about(scroll_command.about.clone().unwrap_or("Casting a magical spell".to_string()));
 
@@ -76,13 +78,48 @@ pub fn create_generate_scroll_spell_command(context: &ResolvedContext, scroll_na
     subcommand
 }
 
-pub fn execute_generate_command(context: &ResolvedContext, matches: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
+pub fn execute_generate_command(context: &ResolvedContext, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
     match matches.subcommand() {
-        Some((name, sub_matches)) => execute_generate_do_command(context, sub_matches),
+        Some((name, sub_matches)) => execute_generate_do_command(context, &name.to_string(), sub_matches),
         _ => unreachable!()
     }
 }
 
-fn execute_generate_do_command(context: &ResolvedContext, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
-        Ok(())
+fn execute_generate_do_command(_context: &ResolvedContext, name: &String, _matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
+    let path = resolve_package_path(name)?;
+    let values_directory_path = path.join("variables");
+
+    let variables = load_variables(&values_directory_path);
+
+    let mut builder = Renderer::builder();
+    for (key, value) in variables.as_mapping().unwrap() {
+        builder = builder
+            .with_value(key.as_str().unwrap().to_string(), value);
+    }
+
+    let templates_directory_path = path.join("templates");
+    let templates = load_templates(templates_directory_path);
+
+    for (key, value) in &templates {
+        builder = builder
+            .with_template_file(key, value)
+            .with_template_string(key, key);
+    }
+
+    let renderer = builder.build()?;
+
+    for (key, value) in &templates {
+        let file_name = renderer.render(format!("raw:{}", key))?;
+        let file_content = renderer.render(format!("path:{}", key))?;
+
+        printdoc!("
+            =============================
+            Target file: {}
+            -----------------------------
+            {}
+            =============================
+        ", file_name, file_content)
+    }
+
+    Ok(())
 }
