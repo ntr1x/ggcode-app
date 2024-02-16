@@ -4,6 +4,7 @@ use std::error::Error;
 use std::io::Write;
 use std::path::PathBuf;
 
+use console::style;
 use glob::glob;
 use relative_path::{RelativePath, RelativePathBuf};
 use serde_yaml::{Mapping, Value};
@@ -31,8 +32,15 @@ pub fn resolve_package_path(path: &String) -> Result<RelativePathBuf, Box<dyn Er
 
 pub fn resolve_inner_path(path: &String) -> Result<RelativePathBuf, Box<dyn Error>> {
     let relative_path = RelativePath::new(path).normalize();
-    assert!(!relative_path.starts_with(".."), "Could not leave base directory");
-    Ok(relative_path)
+    if relative_path.starts_with("..") {
+        return Err(format!("Invalid path: {}. Could not leave base directory.", style(relative_path).yellow()).into());
+    }
+    let normalized_path = relative_path.as_str();
+    match normalized_path {
+        "" => return Err("Invalid path. Path should not be empty.".into()),
+        "." => return Err(format!("Invalid path: {}. Path should not point to the project directory.", style(normalized_path).yellow()).into()),
+        _ => Ok(relative_path)
+    }
 }
 
 pub fn save_config(relative_path: &RelativePathBuf, config: Config) -> Result<(), Box<dyn Error>> {

@@ -34,7 +34,9 @@ impl Context {
                 }
             ),
             None => {
-                return Err("Cannot resolve context".into())
+                return Err(
+                    "Unable to resolve context. No valid configuration file was found in the working directory. \
+                    Please check your ggcode-info.yaml file location.".into())
             }
         }
     }

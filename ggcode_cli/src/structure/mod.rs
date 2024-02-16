@@ -1,10 +1,17 @@
 use std::collections::BTreeMap;
+
 use ggcode_core::ResolvedContext;
 use ggcode_core::scroll::Scroll;
+
 use crate::config::{load_config, load_scroll, resolve_inner_path};
 
-pub fn list_scrolls(context: &ResolvedContext) -> BTreeMap<String, Option<Scroll>> {
-    let mut scrolls: BTreeMap<String, Option<Scroll>> = BTreeMap::new();
+pub struct ScrollRef {
+    pub scroll: Option<Scroll>,
+    pub scroll_path: String,
+}
+
+pub fn list_scrolls(context: &ResolvedContext) -> BTreeMap<String, ScrollRef> {
+    let mut scrolls: BTreeMap<String, ScrollRef> = BTreeMap::new();
 
     for repository in context.current_config.repositories.iter() {
         let repository_path = format!("ggcode_modules/{}", repository.name);
@@ -22,7 +29,11 @@ pub fn list_scrolls(context: &ResolvedContext) -> BTreeMap<String, Option<Scroll
                         .ok()
                         .and_then(|path| load_scroll(&path).ok());
 
-                    scrolls.insert(format!("{}/{}", repository.name, scroll_entry.path), scroll);
+                    let key = format!("{}/{}", repository.name, scroll_entry.path);
+                    scrolls.insert(key, ScrollRef {
+                        scroll,
+                        scroll_path: scroll_entry.path,
+                    });
                 }
             },
         }
@@ -33,7 +44,11 @@ pub fn list_scrolls(context: &ResolvedContext) -> BTreeMap<String, Option<Scroll
         let scroll = resolve_inner_path(&scroll_config_path)
             .ok()
             .and_then(|path| load_scroll(&path).ok());
-        scrolls.insert(format!("@/{}", scroll_entry.path), scroll);
+        let key = format!("@/{}", scroll_entry.path);
+        scrolls.insert(key, ScrollRef {
+            scroll,
+            scroll_path: scroll_entry.path.clone(),
+        });
     }
 
     scrolls

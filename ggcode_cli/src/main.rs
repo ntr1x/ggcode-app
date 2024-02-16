@@ -15,8 +15,10 @@ mod config;
 mod commands;
 mod structure;
 mod renderer;
-mod utils;
+pub mod utils;
 mod greetings;
+mod terminal;
+mod tera_extras;
 
 pub fn load_context() -> Result<Context, Box<dyn Error>> {
     let directory_path = env::current_dir()?;
@@ -41,7 +43,7 @@ pub fn load_context() -> Result<Context, Box<dyn Error>> {
 
 fn execute() -> Result<(), Box<dyn Error>> {
     let context = load_context()?;
-    let cli = create_cli_command(&context);
+    let cli = create_cli_command(&context)?;
     let matches = cli.get_matches();
     execute_cli_command(&context, &matches)
 }
@@ -49,11 +51,11 @@ fn execute() -> Result<(), Box<dyn Error>> {
 fn main() -> ExitCode {
     match execute() {
         Ok(()) => {
-            println!("{} {}", style("[SUCCESS]").green(), generate_wishes());
+            eprintln!("{} {}", style("[SUCCESS]").green(), generate_wishes());
             ExitCode::SUCCESS
         },
         Err(e) => {
-            println!("{} {}", style("[FAILURE]").red(), e);
+            eprintln!("{} {}", style("[FAILURE]").red(), e);
             ExitCode::FAILURE
         }
     }
