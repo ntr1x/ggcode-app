@@ -10,7 +10,7 @@ use ggcode_core::config::{Config, ScrollEntry};
 use ggcode_core::ResolvedContext;
 use ggcode_core::scroll::{Scroll, ScrollCommand};
 
-use crate::config::{resolve_inner_path, rm_scroll, save_config, save_scroll, save_string};
+use crate::storage::{resolve_inner_path, rm_scroll, save_config, save_scroll, save_string};
 use crate::structure::list_scrolls;
 use crate::terminal::TerminalInput;
 

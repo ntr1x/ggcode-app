@@ -4,7 +4,7 @@ use dialoguer::theme::ColorfulTheme;
 
 use ggcode_core::Context;
 use ggcode_core::config::{Config, RepositoryEntry, ScrollEntry, TargetEntry};
-use crate::config::{resolve_inner_path, save_config};
+use crate::storage::{resolve_inner_path, save_config};
 
 const REPOSITORY_CENTRAL_NAME: &str = "central";
 const REPOSITORY_CENTRAL_URI: &str = "git@github.com:ntr1x/com.ntr1x.setup.git";

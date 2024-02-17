@@ -9,7 +9,7 @@ use serde_yaml::{Mapping, Value};
 use ggcode_core::{Context, ResolvedContext};
 use ggcode_core::scroll::{Scroll, ScrollCommand};
 
-use crate::config::{load_scroll, load_templates, load_variables, resolve_package_path, resolve_target_path, save_target_file};
+use crate::storage::{load_scroll, load_templates, load_variables, resolve_package_path, resolve_target_path, save_target_file};
 use crate::greetings::create_progress_bar;
 use crate::renderer::builder::RendererBuilder;
 use crate::structure::list_scrolls;

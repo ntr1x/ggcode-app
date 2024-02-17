@@ -1,9 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
-use std::error::Error;
 
 use lazy_static::lazy_static;
 use regex::{Captures, Regex};
-use serde_json::from_value;
 use serde_json::value::{to_value, Value};
 use tera::try_get_value;
 
@@ -66,25 +64,6 @@ pub fn format_ansi(value: &Value, _: &HashMap<String, Value>) -> tera::Result<Va
     Ok(to_value(r).unwrap())
 }
 
-#[test]
-fn format_ansi_test() -> Result<(), Box<dyn Error>> {
-    let value = to_value("[style:bu]-h, --help[style:r]\t\tDisplay help")?;
-    let result_value = format_ansi(&value, &HashMap::new()).unwrap();
-    let result_string = from_value::<String>(result_value)?;
-    assert_eq!(result_string, "\\u001b[01;04m-h, --help\\u001b[00m\t\tDisplay help");
-    Ok(())
-}
-
-#[test]
-fn format_ansi_test_color() -> Result<(), Box<dyn Error>> {
-    let value = to_value("[color:g]dev@pc[style:r]")?;
-    let result_value = format_ansi(&value, &HashMap::new()).unwrap();
-    let result_string = from_value::<String>(result_value)?;
-    assert_eq!(result_string, "\\u001b[32mdev@pc\\u001b[00m");
-    Ok(())
-}
-
-
 fn replace_all<E>(
     re: &Regex,
     haystack: &str,
@@ -100,4 +79,32 @@ fn replace_all<E>(
     }
     new.push_str(&haystack[last_match..]);
     Ok(new)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+    use std::error::Error;
+
+    use serde_json::{from_value, to_value};
+
+    use crate::renderer::tera_extras::format_ansi;
+
+    #[test]
+    fn format_ansi_style_test() -> Result<(), Box<dyn Error>> {
+        let value = to_value("[style:bu]-h, --help[style:r]\t\tDisplay help")?;
+        let result_value = format_ansi(&value, &HashMap::new()).unwrap();
+        let result_string = from_value::<String>(result_value)?;
+        assert_eq!(result_string, "\\u001b[01;04m-h, --help\\u001b[00m\t\tDisplay help");
+        Ok(())
+    }
+
+    #[test]
+    fn format_ansi_color_test() -> Result<(), Box<dyn Error>> {
+        let value = to_value("[color:g]dev@pc[style:r]")?;
+        let result_value = format_ansi(&value, &HashMap::new()).unwrap();
+        let result_string = from_value::<String>(result_value)?;
+        assert_eq!(result_string, "\\u001b[32mdev@pc\\u001b[00m");
+        Ok(())
+    }
 }

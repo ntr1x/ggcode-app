@@ -3,7 +3,7 @@ use std::error::Error;
 use tera::{Context, Tera};
 
 use crate::renderer::builder::RendererBuilder;
-use crate::tera_extras::format_ansi;
+use crate::renderer::tera_extras::format_ansi;
 
 #[derive(Debug)]
 pub struct TeraRenderer {
@@ -54,19 +54,26 @@ impl RendererBuilder {
     }
 }
 
-#[test]
-fn tera_renderer_test() -> Result<(), Box<dyn Error>> {
-    let builder = RendererBuilder::new()
-        .with_value("foo", "one")
-        .with_value("bar", "two")
-        .with_value("baz", "3")
-        .with_template_string(
-            "SAMPLE.txt",
-            "foo: one = {{foo}}, bar: two = {{bar}}, baz: 3 = {{baz}}");
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
+    use crate::renderer::builder::RendererBuilder;
+    use crate::renderer::tera_renderer::TeraRenderer;
 
-    let renderer: TeraRenderer = builder.build_tera()?;
-    let result = renderer.render("raw:SAMPLE.txt")?;
-    assert_eq!(result, "foo: one = one, bar: two = two, baz: 3 = 3");
+    #[test]
+    fn tera_renderer_test() -> Result<(), Box<dyn Error>> {
+        let builder = RendererBuilder::new()
+            .with_value("foo", "one")
+            .with_value("bar", "two")
+            .with_value("baz", "3")
+            .with_raw_template(
+                "SAMPLE.txt",
+                "foo: one = {{foo}}, bar: two = {{bar}}, baz: 3 = {{baz}}");
 
-    Ok(())
+        let renderer: TeraRenderer = builder.build_tera()?;
+        let result = renderer.render("SAMPLE.txt")?;
+        assert_eq!(result, "foo: one = one, bar: two = two, baz: 3 = 3");
+
+        Ok(())
+    }
 }

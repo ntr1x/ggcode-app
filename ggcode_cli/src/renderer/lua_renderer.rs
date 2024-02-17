@@ -104,33 +104,41 @@ impl UserData for Template {
     }
 }
 
-#[test]
-fn luau_renderer_render_test() -> Result<(), Box<dyn Error>> {
-    let builder = LuaRenderer::builder()
-        .with_value("foo", "one")
-        .with_value("bar", "two")
-        .with_value("baz", "3")
-        .with_template(
-            "SAMPLE.txt",
-            "template:print(`foo: one = {foo}, bar: two = {bar}, baz: 3 = {baz}`)");
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
 
-    let renderer: LuaRenderer = builder.build()?;
-    let result = renderer.render("SAMPLE.txt")?;
-    assert_eq!(result, "foo: one = one, bar: two = two, baz: 3 = 3");
+    use crate::renderer::builder::RendererBuilder;
+    use crate::renderer::lua_renderer::LuaRenderer;
 
-    Ok(())
-}
+    #[test]
+    fn luau_renderer_render_test() -> Result<(), Box<dyn Error>> {
+        let builder = RendererBuilder::new()
+            .with_value("foo", "one")
+            .with_value("bar", "two")
+            .with_value("baz", "3")
+            .with_raw_template(
+                "SAMPLE.txt",
+                "template:print(`foo: one = {foo}, bar: two = {bar}, baz: 3 = {baz}`)");
 
-#[test]
-fn luau_renderer_eval_test() -> Result<(), Box<dyn Error>> {
-    let builder = LuaRenderer::builder()
-        .with_value("foo", "one")
-        .with_value("bar", "two")
-        .with_value("baz", "3");
+        let renderer: LuaRenderer = builder.build_lua()?;
+        let result = renderer.render("SAMPLE.txt")?;
+        assert_eq!(result, "foo: one = one, bar: two = two, baz: 3 = 3");
 
-    let renderer: LuaRenderer = builder.build()?;
-    let result: String = renderer.eval_string_template(r#"`{foo}/{bar}/{baz}`"#)?;
-    assert_eq!(result, "one/two/3");
+        Ok(())
+    }
 
-    Ok(())
+    #[test]
+    fn luau_renderer_eval_test() -> Result<(), Box<dyn Error>> {
+        let builder = RendererBuilder::new()
+            .with_value("foo", "one")
+            .with_value("bar", "two")
+            .with_value("baz", "3");
+
+        let renderer: LuaRenderer = builder.build_lua()?;
+        let result: String = renderer.eval_string_template(r#"`{foo}/{bar}/{baz}`"#)?;
+        assert_eq!(result, "one/two/3");
+
+        Ok(())
+    }
 }

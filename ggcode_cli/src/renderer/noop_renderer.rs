@@ -2,13 +2,11 @@ use std::collections::BTreeMap;
 use std::error::Error;
 use std::fs;
 
-use serde_yaml::Value;
-
 use crate::renderer::builder::RendererBuilder;
 
 #[derive(Debug)]
 pub struct NoopRenderer {
-    values: BTreeMap<String, Value>,
+    // values: BTreeMap<String, Value>,
     templates: BTreeMap<String, String>,
 }
 
@@ -35,14 +33,14 @@ impl RendererBuilder {
             templates.insert(key.clone(), raw);
         }
 
-        let mut values: BTreeMap<String, Value> = BTreeMap::new();
-
-        for (key, value) in &self.values {
-            values.insert(key.clone(), value.clone());
-        }
+        // let mut values: BTreeMap<String, Value> = BTreeMap::new();
+        //
+        // for (key, value) in &self.values {
+        //     values.insert(key.clone(), value.clone());
+        // }
 
         let renderer = NoopRenderer {
-            values,
+            // values,
             templates,
         };
 
@@ -50,19 +48,26 @@ impl RendererBuilder {
     }
 }
 
-#[test]
-fn noop_renderer_render_test() -> Result<(), Box<dyn Error>> {
-    let builder = NoopRenderer::builder()
-        .with_value("foo", "one")
-        .with_value("bar", "two")
-        .with_value("baz", "3")
-        .with_template(
-            "NOOP.txt",
-            "Some template content");
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
+    use crate::renderer::builder::RendererBuilder;
+    use crate::renderer::noop_renderer::NoopRenderer;
 
-    let renderer: NoopRenderer = builder.build()?;
-    let result = renderer.render("SAMPLE.txt")?;
-    assert_eq!(result, "Some template content");
+    #[test]
+    fn noop_renderer_render_test() -> Result<(), Box<dyn Error>> {
+        let builder = RendererBuilder::new()
+            .with_value("foo", "one")
+            .with_value("bar", "two")
+            .with_value("baz", "3")
+            .with_raw_template(
+                "NOOP.txt",
+                "Some template content");
 
-    Ok(())
+        let renderer: NoopRenderer = builder.build_noop()?;
+        let result = renderer.render("NOOP.txt")?;
+        assert_eq!(result, "Some template content");
+
+        Ok(())
+    }
 }

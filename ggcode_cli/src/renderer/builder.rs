@@ -18,7 +18,7 @@ impl RendererBuilder {
         RendererBuilder::default()
     }
 
-    pub fn with_value<S: Into<String>, V: Serialize>(mut self, key: S, value: &V) -> RendererBuilder {
+    pub fn with_value<S: Into<String>, V: Serialize + ?Sized>(mut self, key: S, value: &V) -> RendererBuilder {
         self.values.insert(key.into(), to_value(value).unwrap());
         self
     }

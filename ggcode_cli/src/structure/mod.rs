@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use ggcode_core::ResolvedContext;
 use ggcode_core::scroll::Scroll;
 
-use crate::config::{load_config, load_scroll, resolve_inner_path};
+use crate::storage::{load_config, load_scroll, resolve_inner_path};
 
 pub struct ScrollRef {
     pub scroll: Option<Scroll>,

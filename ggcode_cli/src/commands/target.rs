@@ -4,7 +4,7 @@ use prettytable::format::FormatBuilder;
 use prettytable::{format, row, Table};
 use ggcode_core::ResolvedContext;
 use ggcode_core::config::{Config, TargetEntry};
-use crate::config::{resolve_inner_path, save_config};
+use crate::storage::{resolve_inner_path, save_config};
 
 pub fn create_target_command() -> Command {
     Command::new("target")

@@ -52,7 +52,7 @@ pub fn save_config(relative_path: &RelativePathBuf, config: Config) -> Result<()
         .truncate(true)
         .create(true)
         .open(path)
-        .expect("Couldn't open config file");
+        .expect("Couldn't open storage file");
 
     serde_yaml::to_writer(f, &config).unwrap();
 

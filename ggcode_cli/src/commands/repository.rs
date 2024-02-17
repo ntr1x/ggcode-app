@@ -6,7 +6,7 @@ use prettytable::format::FormatBuilder;
 
 use ggcode_core::ResolvedContext;
 use ggcode_core::config::{Config, RepositoryEntry};
-use crate::config::{resolve_inner_path, save_config};
+use crate::storage::{resolve_inner_path, save_config};
 
 pub fn create_repository_command() -> Command {
     Command::new("repository")

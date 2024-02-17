@@ -5,7 +5,7 @@ use clap::{ArgMatches, Command, command};
 use ggcode_core::Context;
 
 use crate::commands::completions::{create_autocomplete_command, execute_autocomplete_command};
-use crate::commands::gen_target::{create_target_command, execute_target_command};
+use crate::commands::target::{create_target_command, execute_target_command};
 use crate::commands::generate::{create_generate_command, execute_generate_command};
 use crate::commands::history::create_history_command;
 use crate::commands::init::{create_init_command, execute_init_command};
@@ -17,7 +17,7 @@ mod history;
 mod init;
 mod install;
 mod repository;
-mod gen_target;
+mod target;
 mod scroll;
 mod completions;
 mod generate;

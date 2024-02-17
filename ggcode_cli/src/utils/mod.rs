@@ -150,146 +150,153 @@ pub fn merge_yaml(a: &mut Value, b: Value) {
     }
 }
 
-#[test]
-fn evaluate_transparent_sequence_test() -> Result<(), Box<dyn Error>> {
-    let source_string = "
-        - one
-        - two
-        - !TransparentSequence
-            sequence:
-                - three-1
-                - three-2
-        - four
-    ";
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
 
-    let source_value: Value = serde_yaml::from_str(&source_string)?;
-    let target_value = evaluate(&source_value)?;
+    use serde_yaml::Value;
 
-    let expected_string = "
-        - one
-        - two
-        - [three-1, three-2]
-        - four
-    ";
+    use crate::utils::evaluate;
 
-    let expected_value: Value = serde_yaml::from_str(expected_string)?;
+    #[test]
+    fn evaluate_transparent_sequence_test() -> Result<(), Box<dyn Error>> {
+        let source_string = "
+            - one
+            - two
+            - !TransparentSequence
+                sequence:
+                    - three-1
+                    - three-2
+            - four
+        ";
 
-    assert_eq!(target_value, expected_value);
+        let source_value: Value = serde_yaml::from_str(&source_string)?;
+        let target_value = evaluate(&source_value)?;
 
-    Ok(())
-}
+        let expected_string = "
+            - one
+            - two
+            - [three-1, three-2]
+            - four
+        ";
 
-#[test]
-fn evaluate_merge_sequence_test() -> Result<(), Box<dyn Error>> {
-    let source_string = "
-        - one
-        - two
-        - !MergeSequence
-            sequence:
-                - three-1
-                - three-2
-        - four
-    ";
+        let expected_value: Value = serde_yaml::from_str(expected_string)?;
 
-    let source_value: Value = serde_yaml::from_str(&source_string)?;
-    let target_value = evaluate(&source_value)?;
+        assert_eq!(target_value, expected_value);
 
-    let expected_string = "
-        - one
-        - two
-        - three-1
-        - three-2
-        - four
-    ";
+        Ok(())
+    }
 
-    let expected_value: Value = serde_yaml::from_str(expected_string)?;
+    #[test]
+    fn evaluate_merge_sequence_test() -> Result<(), Box<dyn Error>> {
+        let source_string = "
+            - one
+            - two
+            - !MergeSequence
+                sequence:
+                    - three-1
+                    - three-2
+            - four
+        ";
 
-    assert_eq!(target_value, expected_value);
+        let source_value: Value = serde_yaml::from_str(&source_string)?;
+        let target_value = evaluate(&source_value)?;
 
-    Ok(())
-}
+        let expected_string = "
+            - one
+            - two
+            - three-1
+            - three-2
+            - four
+        ";
 
-#[test]
-fn evaluate_transparent_mapping_test() -> Result<(), Box<dyn Error>> {
-    let source_string = "
-        one: 1
-        two: 2
-        three: !TransparentMapping
-            mapping:
+        let expected_value: Value = serde_yaml::from_str(expected_string)?;
+
+        assert_eq!(target_value, expected_value);
+
+        Ok(())
+    }
+
+    #[test]
+    fn evaluate_transparent_mapping_test() -> Result<(), Box<dyn Error>> {
+        let source_string = "
+            one: 1
+            two: 2
+            three: !TransparentMapping
+                mapping:
+                   three-1: 3.1
+                   three-2: 3.2
+            four: 4
+        ";
+
+        let source_value: Value = serde_yaml::from_str(&source_string)?;
+        let target_value = evaluate(&source_value)?;
+
+        let expected_string = "
+            one: 1
+            two: 2
+            three:
                three-1: 3.1
                three-2: 3.2
-        four: 4
-    ";
+            four: 4
+        ";
 
-    let source_value: Value = serde_yaml::from_str(&source_string)?;
-    let target_value = evaluate(&source_value)?;
+        let expected_value: Value = serde_yaml::from_str(expected_string)?;
 
-    let expected_string = "
-        one: 1
-        two: 2
-        three:
-           three-1: 3.1
-           three-2: 3.2
-        four: 4
-    ";
+        assert_eq!(target_value, expected_value);
 
-    let expected_value: Value = serde_yaml::from_str(expected_string)?;
+        Ok(())
+    }
 
-    assert_eq!(target_value, expected_value);
+    #[test]
+    fn evaluate_merge_mapping_test() -> Result<(), Box<dyn Error>> {
+        let source_string = "
+            one: 1
+            two: 2
+            three: !MergeMapping
+                mapping:
+                   three-1: 3.1
+                   three-2: 3.2
+            four: 4
+        ";
 
-    Ok(())
+        let source_value: Value = serde_yaml::from_str(&source_string)?;
+        let target_value = evaluate(&source_value)?;
+
+        let expected_string = "
+            one: 1
+            two: 2
+            three-1: 3.1
+            three-2: 3.2
+            four: 4
+        ";
+
+        let expected_value: Value = serde_yaml::from_str(expected_string)?;
+
+        assert_eq!(target_value, expected_value);
+
+        Ok(())
+    }
+
+    #[test]
+    fn evaluate_bash_command_test() -> Result<(), Box<dyn Error>> {
+        let source_string = "
+            - input: echo 'Hello!'
+              output: !Shell echo 'Hello!'
+        ";
+
+        let source_value: Value = serde_yaml::from_str(&source_string)?;
+        let target_value = evaluate(&source_value)?;
+
+        let expected_string = "
+            - input: echo 'Hello!'
+              output: \"Hello!\\n\"
+        ";
+
+        let expected_value: Value = serde_yaml::from_str(expected_string)?;
+
+        assert_eq!(target_value, expected_value);
+
+        Ok(())
+    }
 }
-
-#[test]
-fn evaluate_merge_mapping_test() -> Result<(), Box<dyn Error>> {
-    let source_string = "
-        one: 1
-        two: 2
-        three: !MergeMapping
-            mapping:
-               three-1: 3.1
-               three-2: 3.2
-        four: 4
-    ";
-
-    let source_value: Value = serde_yaml::from_str(&source_string)?;
-    let target_value = evaluate(&source_value)?;
-
-    let expected_string = "
-        one: 1
-        two: 2
-        three-1: 3.1
-        three-2: 3.2
-        four: 4
-    ";
-
-    let expected_value: Value = serde_yaml::from_str(expected_string)?;
-
-    assert_eq!(target_value, expected_value);
-
-    Ok(())
-}
-
-// #[test]
-// fn evaluate_bash_command_test() -> Result<(), Box<dyn Error>> {
-//     let source_string = "
-//         - input: pwd
-//           output: !Shell pwd
-//         - input: ls -la
-//           output: !Shell ls -la
-//     ";
-//
-//     let source_value: Value = serde_yaml::from_str(&source_string)?;
-//     let target_value = evaluate(&source_value)?;
-//
-//     let expected_string = "
-//         - one: 1
-//         - two: 2
-//     ";
-//
-//     let expected_value: Value = serde_yaml::from_str(expected_string)?;
-//
-//     assert_eq!(target_value, expected_value);
-//
-//     Ok(())
-// }
