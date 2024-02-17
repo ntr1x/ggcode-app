@@ -12,12 +12,17 @@ pub struct TerminalInput<'a> {
     matches: &'a ArgMatches,
     name: String,
     prompt: String,
+    default_value: Option<String>,
     required: bool,
 }
 
 impl <'a> TerminalInput<'a> {
     pub fn builder() -> TerminalInputBuilder<'a> {
         TerminalInputBuilder::default()
+    }
+
+    pub fn read_string(&self) -> Result<Option<String>, Box<dyn Error>> {
+        self.read(|s| Ok(s.clone()))
     }
 
     pub fn read<T, F: Fn(&String) -> Result<T, Box<dyn Error>>>(&self, convert: F) -> Result<Option<T>, Box<dyn Error>> {
@@ -27,11 +32,17 @@ impl <'a> TerminalInput<'a> {
             let path_option = match (path_input, &self.required) {
                 (Some(path), _) => Some(path.clone()),
                 (None, false) => None,
-                (None, true) => Some(
-                    Input::with_theme(&ColorfulTheme::default())
-                        .with_prompt(&self.prompt)
-                        .interact_text()?
-                )
+                (None, true) => {
+                    let theme = ColorfulTheme::default();
+                    let input = match &self.default_value {
+                        Some(dv) => Input::with_theme(&theme)
+                            .with_prompt(&self.prompt)
+                            .default(dv.clone()),
+                        None => Input::with_theme(&theme)
+                            .with_prompt(&self.prompt)
+                    };
+                    Some(input.interact_text()?)
+                }
             };
 
             match (path_option, &self.required) {
