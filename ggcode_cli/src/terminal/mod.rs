@@ -12,8 +12,15 @@ pub struct TerminalInput<'a> {
     matches: &'a ArgMatches,
     name: String,
     prompt: String,
+    #[builder(default = "self.default_default_value()")]
     default_value: Option<String>,
     required: bool,
+}
+
+impl <'a> TerminalInputBuilder<'a> {
+    pub fn default_default_value(&self) -> Option<String> {
+        None
+    }
 }
 
 impl <'a> TerminalInput<'a> {

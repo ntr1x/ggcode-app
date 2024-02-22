@@ -1,10 +1,12 @@
 use std::error::Error;
-use clap::{arg, ArgMatches, Command};
+use clap::{arg, ArgMatches, Command, ValueHint};
+use console::style;
 use prettytable::format::FormatBuilder;
 use prettytable::{format, row, Table};
 use ggcode_core::ResolvedContext;
 use ggcode_core::config::{Config, TargetEntry};
-use crate::storage::{resolve_inner_path, save_config};
+use crate::storage::{resolve_inner_path, resolve_target_path, save_config};
+use crate::terminal::TerminalInput;
 
 pub fn create_target_command() -> Command {
     Command::new("target")
@@ -19,17 +21,15 @@ pub fn create_target_command() -> Command {
 fn create_target_add_command() -> Command {
     Command::new("add")
         .about("Add a target")
-        .arg(arg!(-n --name <String> "Name of the target").required(true))
-        .arg(arg!(-p --path <Path> "Target directory path").required(true))
-        .arg_required_else_help(true)
+        .arg(arg!(-n --name <String> "Name of the target"))
+        .arg(arg!(-p --path <Path> "Target directory path").value_hint(ValueHint::DirPath))
 }
 
 fn create_target_remove_command() -> Command {
     Command::new("remove")
         .about("Remove a target")
         .alias("rm")
-        .arg(arg!(-n --name <String> "Name of the target").required(true))
-        .arg_required_else_help(true)
+        .arg(arg!(-n --name <String> "Name of the target"))
 }
 
 fn create_target_list_command() -> Command {
@@ -49,12 +49,26 @@ pub fn execute_target_command(context: ResolvedContext, matches: &ArgMatches) ->
 }
 
 fn execute_target_remove_command(context: ResolvedContext, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
-    let name = matches.get_one::<String>("name").unwrap();
+    let name = TerminalInput::builder()
+        .matches(matches)
+        .name("name")
+        .prompt("Name of the target:")
+        .required(true)
+        .build()?
+        .read_string()?
+        .unwrap();
 
-    let targets: Vec<TargetEntry> = context.current_config.targets
-        .into_iter()
-        .filter(|r| &r.name != name)
-        .collect();
+    let mut targets: Vec<TargetEntry> = vec![];
+
+    for target in &context.current_config.targets {
+        if &target.name != &name {
+            targets.push(target.clone())
+        }
+    }
+
+    if &targets.len() == &context.current_config.targets.len() {
+        eprintln!("{} Nothing changed. No target with name: {}", style("[WARN]").yellow(), name)
+    }
 
     let config = Config {
         targets,
@@ -67,29 +81,47 @@ fn execute_target_remove_command(context: ResolvedContext, matches: &ArgMatches)
 }
 
 fn execute_target_add_command(context: ResolvedContext, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
-    let name = matches.get_one::<String>("name").unwrap();
-    let path = matches.get_one::<String>("path").unwrap();
+    let name = TerminalInput::builder()
+        .matches(matches)
+        .name("name")
+        .prompt("Name of the target:")
+        .required(true)
+        .build()?
+        .read_string()?
+        .unwrap();
 
-    println!("path: {}", path);
+    // let path = matches.get_one::<String>("path").unwrap();
+    let path = TerminalInput::builder()
+        .matches(matches)
+        .name("path")
+        .prompt("Path to the target:")
+        .required(true)
+        .build()?
+        .read(resolve_target_path)?
+        .unwrap();
 
     let duplicate = context.current_config.targets
         .iter()
-        .find(|r| r.name.eq(name));
+        .find(|r| r.name.eq(&name));
 
-    if duplicate.is_none() {
-        let targets = vec![TargetEntry {
-            name: name.to_string(),
-            path: path.to_string(),
-        }];
-        let config = Config {
-            targets: [&context.current_config.targets[..], &targets[..]].concat(),
-            ..context.current_config
-        };
+    match duplicate {
+        Some(_) => {
+            Err(format!("Target {} already exists", name).into())
+        }
+        None => {
+            let targets = vec![TargetEntry {
+                name: name.to_string(),
+                path: path.as_path().to_str().unwrap().to_string()
+            }];
+            let config = Config {
+                targets: [&context.current_config.targets[..], &targets[..]].concat(),
+                ..context.current_config
+            };
 
-        save_config(&resolve_inner_path(&context.config_path)?, config)?;
+            save_config(&resolve_inner_path(&context.config_path)?, config)?;
+            Ok(())
+        }
     }
-
-    Ok(())
 }
 
 fn execute_target_list_command(context: ResolvedContext, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {

@@ -1,12 +1,15 @@
 use std::error::Error;
 
 use clap::{arg, ArgMatches, Command};
+use console::style;
 use prettytable::{format, row, Table};
 use prettytable::format::FormatBuilder;
 
-use ggcode_core::ResolvedContext;
 use ggcode_core::config::{Config, RepositoryEntry};
+use ggcode_core::ResolvedContext;
+
 use crate::storage::{resolve_inner_path, save_config};
+use crate::terminal::TerminalInput;
 
 pub fn create_repository_command() -> Command {
     Command::new("repository")
@@ -21,17 +24,15 @@ pub fn create_repository_command() -> Command {
 fn create_repository_add_command() -> Command {
     Command::new("add")
         .about("Add a repository")
-        .arg(arg!(-n --name <String> "Name of the repository").required(true))
-        .arg(arg!(-u --uri <URI> "URI of the repository").required(true))
-        .arg_required_else_help(true)
+        .arg(arg!(-n --name <String> "Name of the repository"))
+        .arg(arg!(-u --uri <URI> "URI of the repository"))
 }
 
 fn create_repository_remove_command() -> Command {
     Command::new("remove")
         .about("Remove a repository")
         .alias("rm")
-        .arg(arg!(-n --name <String> "Name of the repository").required(true))
-        .arg_required_else_help(true)
+        .arg(arg!(-n --name <String> "Name of the repository"))
 }
 
 fn create_repository_list_command() -> Command {
@@ -51,12 +52,26 @@ pub fn execute_repository_command(context: ResolvedContext, matches: &ArgMatches
 }
 
 fn execute_repository_remove_command(context: ResolvedContext, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
-    let name = matches.get_one::<String>("name").unwrap();
+    let name = TerminalInput::builder()
+        .matches(matches)
+        .name("name")
+        .prompt("Name of the repository:")
+        .required(true)
+        .build()?
+        .read_string()?
+        .unwrap();
 
-    let repositories: Vec<RepositoryEntry> = context.current_config.repositories
-        .into_iter()
-        .filter(|r| &r.name != name)
-        .collect();
+    let mut repositories: Vec<RepositoryEntry> = vec![];
+
+    for repository in &context.current_config.repositories {
+        if &repository.name != &name {
+            repositories.push(repository.clone())
+        }
+    }
+
+    if &repositories.len() == &context.current_config.repositories.len() {
+        eprintln!("{} Nothing changed. No repository with name: {}", style("[WARN]").yellow(), name)
+    }
 
     let config = Config {
         repositories,
@@ -69,12 +84,27 @@ fn execute_repository_remove_command(context: ResolvedContext, matches: &ArgMatc
 }
 
 fn execute_repository_add_command(context: ResolvedContext, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
-    let name = matches.get_one::<String>("name").unwrap();
-    let uri = matches.get_one::<String>("uri").unwrap();
+    let name = TerminalInput::builder()
+        .matches(matches)
+        .name("name")
+        .prompt("Name of the repository:")
+        .required(true)
+        .build()?
+        .read_string()?
+        .unwrap();
+
+    let uri = TerminalInput::builder()
+        .matches(matches)
+        .name("uri")
+        .prompt("URI of the repository:")
+        .required(true)
+        .build()?
+        .read_string()?
+        .unwrap();
 
     let duplicate = context.current_config.repositories
         .iter()
-        .find(|r| r.name.eq(name));
+        .find(|r| r.name.eq(&name));
 
     if duplicate.is_none() {
         let repositories = vec![RepositoryEntry {

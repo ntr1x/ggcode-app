@@ -2,10 +2,12 @@ use std::collections::BTreeMap;
 use std::error::Error;
 use std::fs;
 
-use mlua::{AnyUserData, Lua, LuaSerdeExt, UserData};
+use mlua::{Lua, LuaSerdeExt};
 use serde_yaml::Value;
 
 use crate::renderer::builder::RendererBuilder;
+use crate::renderer::luau_extras::{LuauTemplate, trace_mlua_error};
+use crate::types::ErrorBox;
 
 #[derive(Debug)]
 pub struct LuaRenderer {
@@ -25,7 +27,7 @@ impl LuaRenderer {
             globals.set(key.as_str(), lua_value)?;
         }
 
-        let template = lua.create_userdata(Template {
+        let template = lua.create_userdata(LuauTemplate {
             st: String::new()
         })?;
 
@@ -35,9 +37,13 @@ impl LuaRenderer {
             .get(name_string)
             .ok_or::<Box<dyn Error>>(format!("No template: {}", name_string).into())?;
 
-        lua.load(script).exec()?;
+        lua.load(script).exec()
+            .map_err::<ErrorBox, _>(|e| {
+                trace_mlua_error(script, &e.clone().into());
+                format!("Error parsing template: {e}").into()
+            })?;
 
-        let result = template.borrow::<Template>()?.st.clone();
+        let result = template.borrow::<LuauTemplate>()?.st.clone();
 
         Ok(result)
     }
@@ -85,31 +91,12 @@ impl RendererBuilder {
     }
 }
 
-#[derive(Debug)]
-struct Template {
-    pub st: String,
-}
-
-impl UserData for Template {
-    fn add_methods<'lua, M: mlua::UserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_function_mut("print", |_, (ud, value): (AnyUserData, String)| {
-            ud.borrow_mut::<Template>()?.st.push_str(value.as_str());
-            Ok(())
-        });
-
-        methods.add_function_mut("println", |_, (ud, value): (AnyUserData, String)| {
-            ud.borrow_mut::<Template>()?.st.push_str(&format!("{}\n", value.as_str()));
-            Ok(())
-        });
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::error::Error;
 
     use crate::renderer::builder::RendererBuilder;
-    use crate::renderer::lua_renderer::LuaRenderer;
+    use crate::renderer::luau_renderer::LuaRenderer;
 
     #[test]
     fn luau_renderer_render_test() -> Result<(), Box<dyn Error>> {

@@ -12,12 +12,26 @@ use serde_yaml::{Mapping, Value};
 use ggcode_core::config::Config;
 use ggcode_core::scroll::Scroll;
 
+use crate::renderer::luau_evaluator::LuauEvaluatorBuilder;
+use crate::renderer::luau_extras::LuauShell;
 use crate::utils::merge_yaml;
 
 pub fn resolve_target_path(path: &String) -> Result<PathBuf, Box<dyn Error>> {
-    let relative_path = RelativePath::new(path).normalize();
-    let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
-    let target_path = relative_path.to_path(&current_dir);
+    let path_buf = PathBuf::from(path.to_string());
+    let target_path = match path_buf.is_absolute() {
+        true => {
+            let target_path = path_buf
+                .canonicalize()
+                .map_err::<Box<dyn Error>, _>(|e| format!("Invalid path. {}", e).into())?;
+            target_path
+        },
+        false => {
+            let relative_path = RelativePath::new(path).normalize();
+            let target_path = PathBuf::from(relative_path.to_string());
+            target_path
+
+        }
+    };
     Ok(target_path)
 }
 
@@ -62,8 +76,7 @@ pub fn save_config(relative_path: &RelativePathBuf, config: Config) -> Result<()
 pub fn rm_scroll(relative_path: &RelativePathBuf) -> Result<(), Box<dyn Error>> {
     let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
     let path = relative_path.to_path(current_dir);
-
-    std::fs::remove_dir_all(path).unwrap();
+    std::fs::remove_dir_all(path)?;
     Ok(())
 }
 
@@ -139,12 +152,29 @@ pub fn load_scroll(relative_path: &RelativePathBuf) -> Result<Scroll, Box<dyn Er
     Ok(config)
 }
 
-pub fn load_value(relative_path: &RelativePathBuf) -> Result<Value, Box<dyn Error>> {
+pub fn load_yaml(relative_path: &RelativePathBuf) -> Result<Value, Box<dyn Error>> {
     let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
     let path = relative_path.to_path(current_dir);
 
     let f = std::fs::File::open(path)?;
     let config = serde_yaml::from_reader(f)?;
+    Ok(config)
+}
+
+pub fn load_luau(relative_path: &RelativePathBuf) -> Result<Value, Box<dyn Error>> {
+    let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
+    let path = relative_path.to_path(current_dir);
+
+    let script = std::fs::read_to_string(path)?;
+
+    let evaluator = LuauEvaluatorBuilder::new()
+        .enable_shell(LuauShell)
+        .build()?;
+
+    let config = evaluator.eval_value(&script)?;
+
+    println!("{}", serde_yaml::to_string(&config)?);
+
     Ok(config)
 }
 
@@ -169,8 +199,8 @@ pub fn load_templates(templates_directory_path: RelativePathBuf) -> BTreeMap<Str
     map
 }
 
-pub fn load_variables(values_directory_path: &RelativePathBuf) -> Value {
-    let pattern = format!("{}/**/*.yaml", values_directory_path);
+pub fn load_variables(values_directory_path: &RelativePathBuf) -> Result<Value, Box<dyn Error>> {
+    let pattern = format!("{}/**/*", values_directory_path);
 
     let mut merged_value: Value = Value::Mapping(Mapping::new());
 
@@ -181,7 +211,13 @@ pub fn load_variables(values_directory_path: &RelativePathBuf) -> Value {
                     let relative_entry_path = RelativePathBuf::from_path(entry_path).unwrap();
                     let relative_variables_path = values_directory_path.relative(&relative_entry_path);
 
-                    if let Ok(value) = &load_value(&relative_entry_path) {
+                    let config = match relative_entry_path.extension() {
+                        Some("yaml") => Some(load_yaml(&relative_entry_path)?),
+                        Some("luau") => Some(load_luau(&relative_entry_path)?),
+                        _ => None
+                    };
+
+                    if let Some(value) = &config {
                         let file_stem = relative_variables_path.file_stem().unwrap();
                         let parent = relative_variables_path.parent().unwrap();
 
@@ -202,5 +238,52 @@ pub fn load_variables(values_directory_path: &RelativePathBuf) -> Value {
             }
         }
     }
-    merged_value
+    Ok(merged_value)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
+
+    use indoc::indoc;
+    use mlua::{Lua, LuaSerdeExt};
+    use serde_yaml::Value;
+
+    use crate::storage::resolve_target_path;
+
+    #[test]
+    fn resolve_target_path_test() -> Result<(), Box<dyn Error>> {
+        let path = resolve_target_path(&".".to_string())?;
+        assert_eq!(path.to_str().unwrap(), "");
+
+        let path = resolve_target_path(&"/".to_string())?;
+        assert_eq!(path.to_str().unwrap(), "/");
+
+        let path = resolve_target_path(&"../some".to_string())?;
+        assert_eq!(path.to_str().unwrap(), "../some");
+
+        let path = resolve_target_path(&"../some/".to_string())?;
+        assert_eq!(path.to_str().unwrap(), "../some");
+
+        let path = resolve_target_path(&"./some/inner".to_string())?;
+        assert_eq!(path.to_str().unwrap(), "some/inner");
+
+        let path = resolve_target_path(&"some/../other/inner".to_string())?;
+        assert_eq!(path.to_str().unwrap(), "other/inner");
+
+        Ok(())
+    }
+
+    #[test]
+    fn load_lua_config_test() -> Result<(), Box<dyn Error>> {
+        let lua = Lua::new();
+        let script = indoc! {"
+            local name = \"John Smith\"\
+            return { name = name, greeting = `Hello {name}!` }
+        "};
+        let config_lua: mlua::Value = lua.load(script).eval::<mlua::Value>()?;
+        let config: Value = lua.from_value(config_lua)?;
+        assert_eq!(config["greeting"].as_str().unwrap(), "Hello John Smith!");
+        Ok(())
+    }
 }

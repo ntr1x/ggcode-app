@@ -15,10 +15,10 @@ mod storage;
 mod commands;
 mod structure;
 mod renderer;
-pub mod utils;
+mod utils;
 mod greetings;
 mod terminal;
-
+mod types;
 pub fn load_context() -> Result<Context, Box<dyn Error>> {
     let directory_path = env::current_dir()?;
     let directory_name = directory_path

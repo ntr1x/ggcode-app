@@ -49,7 +49,7 @@ pub fn create_init_command() -> Command {
         //     .num_args(0..))
 }
 
-pub fn execute_init_command(context: &Context, matches: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
+pub fn execute_init_command(context: &Context, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
     let default_name = context.current_config
         .as_ref()
         .map(|config| -> String { format!("{}", config.name) })
@@ -70,7 +70,7 @@ pub fn execute_init_command(context: &Context, matches: &ArgMatches) -> Result<(
     let scrolls = setup_scrolls(&context.current_config, matches)?;
 
     let config = Config {
-        name,
+        name: name.to_string(),
         scrolls,
         targets,
         repositories,

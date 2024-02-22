@@ -23,6 +23,7 @@ impl RendererBuilder {
         self
     }
 
+    #[allow(dead_code)]
     pub fn with_raw_template<S: Into<String>, V: Into<String>>(mut self, name: S, raw: V) -> RendererBuilder {
         self.raw_templates.insert(name.into(), raw.into());
         self

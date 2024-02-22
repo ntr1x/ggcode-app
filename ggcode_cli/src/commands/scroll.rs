@@ -86,7 +86,8 @@ fn execute_scroll_remove_command(context: &ResolvedContext, matches: &ArgMatches
             };
 
             save_config(&resolve_inner_path(&context.config_path)?, config)?;
-            rm_scroll(&relative_path).unwrap();
+            rm_scroll(&relative_path)
+                .map_err::<Box<dyn Error>, _>(|e| format!("Cannot remove scroll directory: {}", e).into())?;
         }
     };
 
@@ -103,39 +104,6 @@ fn find_scroll_with_name<'a>(context: &'a ResolvedContext, relative_path: &Relat
             }
         })
 }
-
-// fn read_inner_path(matches: &ArgMatches, name: &String, prompt: &String, required: bool) -> Result<Option<RelativePathBuf>, Box<dyn Error>> {
-//
-//     let path_input = matches.get_one::<String>(name.as_str());
-//
-//     loop {
-//         let path_option = match (path_input, required) {
-//             (Some(path), _) => Some(path.clone()),
-//             (None, false) => None,
-//             (None, true) => Some(
-//                 Input::with_theme(&ColorfulTheme::default())
-//                     .with_prompt(prompt)
-//                     .interact_text()?
-//             )
-//         };
-//
-//         match (path_option, required) {
-//             (Some(path), _) => {
-//                 match resolve_inner_path(&path) {
-//                     Ok(resolved_path) => return Ok(Some(resolved_path)),
-//                     Err(e) => {
-//                         match path_input {
-//                             Some(_) => return Err(format!("Invalid input. {}", e).into()),
-//                             None => eprintln!("Invalid input. {}", e)
-//                         }
-//                     },
-//                 }
-//             },
-//             (None, true) => eprintln!("Invalid input. {} is required", style(name).yellow()),
-//             (None, false) => return Ok(None)
-//         };
-//     }
-// }
 
 fn execute_scroll_add_command(context: &ResolvedContext, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
     let relative_path = TerminalInput::builder()

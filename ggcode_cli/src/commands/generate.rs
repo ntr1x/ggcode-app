@@ -158,7 +158,7 @@ fn execute_generate_scroll_spell_command(context: &ResolvedContext, name: &Strin
     let path = resolve_package_path(name)?;
     let values_directory_path = path.join("variables");
 
-    let variables = load_variables(&values_directory_path);
+    let variables = load_variables(&values_directory_path)?;
     let variables = evaluate(&variables)?;
 
     let mut builder = RendererBuilder::new();
