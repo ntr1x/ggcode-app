@@ -6,19 +6,14 @@ use ::console::style;
 
 use ggcode_core::config::DEFAULT_CONFIG_NAME;
 use ggcode_core::Context;
+use ggcode_core::storage::{load_config, resolve_inner_path};
 
 use crate::commands::{create_cli_command, execute_cli_command};
-use crate::storage::{load_config, resolve_inner_path};
 use crate::greetings::generate_wishes;
 
-mod storage;
 mod commands;
-mod structure;
-mod renderer;
-mod utils;
 mod greetings;
-mod terminal;
-mod types;
+pub mod terminal;
 
 pub fn load_context() -> Result<Context, Box<dyn Error>> {
     let directory_path = env::current_dir()?;

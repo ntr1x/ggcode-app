@@ -7,10 +7,9 @@ use dialoguer::theme::ColorfulTheme;
 use lazy_static::lazy_static;
 use regex::Regex;
 
-use ggcode_core::config::{PackageConfig, RepositoryEntry, ScrollEntry, TargetEntry};
+use ggcode_core::config::{ChainEntry, PackageConfig, RepositoryEntry, ScrollEntry, TargetEntry};
 use ggcode_core::Context;
-
-use crate::storage::{resolve_inner_path, save_config};
+use ggcode_core::storage::{resolve_inner_path, save_config};
 use crate::terminal::TerminalInput;
 
 const REPOSITORY_CENTRAL_NAME: &str = "central";
@@ -68,10 +67,12 @@ pub fn execute_init_command(context: &Context, matches: &ArgMatches) -> Result<(
     let repositories = setup_repositories(&context.current_config, matches)?;
     let targets = setup_targets(&context.current_config, matches)?;
     let scrolls = setup_scrolls(&context.current_config, matches)?;
+    let chains = setup_chains(&context.current_config, matches)?;
 
     let config = PackageConfig {
         name: name.to_string(),
         scrolls,
+        chains,
         targets,
         repositories,
     };
@@ -83,6 +84,13 @@ fn setup_scrolls(config: &Option<PackageConfig>, _matches: &ArgMatches) -> Resul
     match config {
         None => Ok(vec!()),
         Some(config) => Ok(config.scrolls.clone())
+    }
+}
+
+fn setup_chains(config: &Option<PackageConfig>, _matches: &ArgMatches) -> Result<Vec<ChainEntry>, Box<dyn Error>> {
+    match config {
+        None => Ok(vec!()),
+        Some(config) => Ok(config.chains.clone())
     }
 }
 

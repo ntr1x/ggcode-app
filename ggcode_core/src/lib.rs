@@ -1,10 +1,15 @@
 use std::error::Error;
 use std::path::PathBuf;
 
-pub mod config;
-
 use config::PackageConfig;
+
+pub mod config;
 pub mod scroll;
+pub mod chain;
+pub mod storage;
+pub mod utils;
+pub mod types;
+pub mod renderer;
 
 #[derive(Debug, Clone)]
 pub struct Context {

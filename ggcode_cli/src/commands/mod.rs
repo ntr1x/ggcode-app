@@ -4,6 +4,7 @@ use clap::{ArgMatches, Command, command};
 
 use ggcode_core::Context;
 
+use crate::commands::chain::{create_chain_command, execute_chain_command};
 use crate::commands::completions::{create_autocomplete_command, execute_autocomplete_command};
 use crate::commands::generate::{create_generate_command, execute_generate_command};
 use crate::commands::init::{create_init_command, execute_init_command};
@@ -20,6 +21,7 @@ mod target;
 mod scroll;
 mod completions;
 mod generate;
+mod chain;
 
 pub fn create_cli_command(context: &Context) -> Result<Command, Box<dyn Error>> {
     let command = command!()
@@ -33,6 +35,7 @@ pub fn create_cli_command(context: &Context) -> Result<Command, Box<dyn Error>> 
         // .next_help_heading("Manage")
         .subcommand(create_repository_command())
         .subcommand(create_scroll_command())
+        .subcommand(create_chain_command())
         .subcommand(create_target_command())
         // .subcommand(create_history_command())
         // .next_help_heading("Miscellaneous")
@@ -49,6 +52,7 @@ pub fn execute_cli_command(context: &Context, matches: &ArgMatches) -> Result<()
         Some(("repository", sub_matches)) => execute_repository_command(context.resolve()?, sub_matches),
         Some(("target", sub_matches)) => execute_target_command(context.resolve()?, sub_matches),
         Some(("scroll", sub_matches)) => execute_scroll_command(&context.resolve()?, sub_matches),
+        Some(("chain", sub_matches)) => execute_chain_command(&context.resolve()?, sub_matches),
         Some(("completions", sub_matches)) => execute_autocomplete_command(&context, sub_matches),
         _ => return Err("Unsupported command".into())
     }

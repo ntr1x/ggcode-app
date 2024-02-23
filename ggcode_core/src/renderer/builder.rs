@@ -6,11 +6,11 @@ use serde_yaml::{to_value, Value};
 
 #[derive(Default)]
 pub struct RendererBuilder {
-    pub(crate) values: BTreeMap<String, Value>,
+    pub values: BTreeMap<String, Value>,
     // raw_scripts: BTreeMap<String, String>,
-    pub(crate) raw_templates: BTreeMap<String, String>,
+    pub raw_templates: BTreeMap<String, String>,
     // file_scripts: BTreeMap<String, String>,
-    pub(crate) file_templates: BTreeMap<String, PathBuf>,
+    pub file_templates: BTreeMap<String, PathBuf>,
 }
 
 impl RendererBuilder {

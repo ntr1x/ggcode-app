@@ -5,10 +5,11 @@ use std::path::PathBuf;
 use clap::{ArgMatches, Command};
 use console::style;
 use relative_path::RelativePathBuf;
-use ggcode_core::config::RepositoryEntry;
 
+use ggcode_core::config::RepositoryEntry;
 use ggcode_core::ResolvedContext;
-use crate::storage::{load_config, resolve_inner_path};
+use ggcode_core::storage::{load_config, resolve_inner_path};
+
 use crate::greetings::create_progress_bar;
 
 pub fn create_install_command() -> Command {

@@ -22,8 +22,15 @@ pub struct ScrollEntry {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChainEntry {
+    pub path: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PackageConfig {
     pub name: String,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub chains: Vec<ChainEntry>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub scrolls: Vec<ScrollEntry>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]

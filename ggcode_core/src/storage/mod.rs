@@ -9,11 +9,11 @@ use glob::glob;
 use relative_path::{RelativePath, RelativePathBuf};
 use serde_yaml::{Mapping, Value};
 
-use ggcode_core::config::PackageConfig;
-use ggcode_core::scroll::ScrollConfig;
-
+use crate::chain::ChainConfig;
+use crate::config::PackageConfig;
 use crate::renderer::luau_evaluator::LuauEvaluatorBuilder;
 use crate::renderer::luau_extras::LuauShell;
+use crate::scroll::ScrollConfig;
 use crate::utils::merge_yaml;
 
 pub fn resolve_target_path(path: &String) -> Result<PathBuf, Box<dyn Error>> {
@@ -135,6 +135,32 @@ pub fn save_scroll(relative_path: &RelativePathBuf, scroll: ScrollConfig) -> Res
     Ok(())
 }
 
+pub fn rm_chain(relative_path: &RelativePathBuf) -> Result<(), Box<dyn Error>> {
+    let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
+    let path = relative_path.to_path(current_dir);
+    fs::remove_dir_all(path)?;
+    Ok(())
+}
+
+pub fn save_chain(relative_path: &RelativePathBuf, chain: ChainConfig) -> Result<(), Box<dyn Error>> {
+    let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
+    let path = relative_path.to_path(current_dir);
+
+    let prefix = path.parent().unwrap();
+    fs::create_dir_all(prefix).unwrap();
+
+    let f = fs::OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .create(true)
+        .open(path)
+        .expect("Couldn't open chain file");
+
+    serde_yaml::to_writer(f, &chain).unwrap();
+
+    Ok(())
+}
+
 pub fn save_string(relative_path: &RelativePathBuf, content: String) -> Result<(), Box<dyn Error>> {
     let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
     let path = relative_path.to_path(current_dir);
@@ -180,6 +206,15 @@ pub fn load_config(relative_path: &RelativePathBuf) -> Result<PackageConfig, Box
 }
 
 pub fn load_scroll(relative_path: &RelativePathBuf) -> Result<ScrollConfig, Box<dyn Error>> {
+    let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
+    let path = relative_path.to_path(current_dir);
+
+    let f = fs::File::open(path)?;
+    let config = serde_yaml::from_reader(f)?;
+    Ok(config)
+}
+
+pub fn load_chain(relative_path: &RelativePathBuf) -> Result<ChainConfig, Box<dyn Error>> {
     let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
     let path = relative_path.to_path(current_dir);
 

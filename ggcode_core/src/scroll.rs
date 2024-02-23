@@ -1,9 +1,33 @@
 use std::collections::BTreeMap;
 
-use ggcode_core::ResolvedContext;
-use ggcode_core::scroll::ScrollConfig;
+use serde::{Deserialize, Serialize};
 
+use crate::ResolvedContext;
 use crate::storage::{load_config, load_scroll, resolve_inner_path};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScrollConfig {
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub commands: Vec<ScrollCommand>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScrollCommand {
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub about: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub args: Vec<ScrollArg>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScrollArg {
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub about: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub required: Option<bool>,
+}
 
 pub struct ScrollRef {
     pub scroll: Option<ScrollConfig>,

@@ -7,12 +7,11 @@ use relative_path::RelativePathBuf;
 use serde_yaml::{Mapping, Value};
 
 use ggcode_core::{Context, ResolvedContext};
-use ggcode_core::scroll::{ScrollCommand, ScrollConfig};
+use ggcode_core::renderer::builder::RendererBuilder;
+use ggcode_core::scroll::{list_scrolls, ScrollCommand, ScrollConfig};
+use ggcode_core::storage::{load_scroll, load_templates, load_variables, resolve_package_path, resolve_search_locations, resolve_target_path, save_target_file};
 
 use crate::greetings::create_progress_bar;
-use crate::renderer::builder::RendererBuilder;
-use crate::storage::{load_scroll, load_templates, load_variables, resolve_package_path, resolve_search_locations, resolve_target_path, save_target_file};
-use crate::structure::list_scrolls;
 
 pub fn create_generate_command(context: &Context) -> Result<Command, Box<dyn Error>> {
     let mut command = Command::new("generate")

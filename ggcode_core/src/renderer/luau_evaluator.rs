@@ -15,9 +15,9 @@ pub struct LuauEvaluator {
 
 #[derive(Default)]
 pub struct LuauEvaluatorBuilder {
-    pub(crate) globals: BTreeMap<String, Value>,
-    pub(crate) paths: Vec<PathBuf>,
-    pub(crate) shell: Option<LuauShell>,
+    pub globals: BTreeMap<String, Value>,
+    pub paths: Vec<PathBuf>,
+    pub shell: Option<LuauShell>,
     // pub(crate) template: Option<LuauTemplate>,
 }
 
