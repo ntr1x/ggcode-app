@@ -8,7 +8,7 @@ use relative_path::RelativePathBuf;
 
 use ggcode_core::config::{PackageConfig, ScrollEntry};
 use ggcode_core::ResolvedContext;
-use ggcode_core::scroll::{ScrollConfig, ScrollCommand};
+use ggcode_core::scroll::{ScrollCommand, ScrollConfig};
 
 use crate::storage::{resolve_inner_path, rm_scroll, save_config, save_scroll, save_string};
 use crate::structure::list_scrolls;
@@ -147,12 +147,10 @@ fn execute_scroll_add_command(context: &ResolvedContext, matches: &ArgMatches) -
                 Date: {{ now() }}
             ");
 
-            let variables = formatdoc!("
-                \"[README.md]\":
-                  author: \"{author}\"
-                  scroll: \"{scroll}\"
+            let variables = formatdoc!("\
+                author: \"{author}\"
+                scroll: \"{scroll}\"
             ", author = "Developer", scroll = relative_path.as_str());
-
 
             save_string(&relative_path.join("templates/README.md"), readme.to_string())?;
             save_string(&relative_path.join("variables/variables.yaml"), variables.to_string())?;

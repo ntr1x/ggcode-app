@@ -1,6 +1,4 @@
-use std::collections::BTreeMap;
 use std::error::Error;
-use std::path::PathBuf;
 
 use clap::{Arg, arg, ArgMatches, Command};
 use console::style;
@@ -9,11 +7,11 @@ use relative_path::RelativePathBuf;
 use serde_yaml::{Mapping, Value};
 
 use ggcode_core::{Context, ResolvedContext};
-use ggcode_core::scroll::{ScrollConfig, ScrollCommand};
+use ggcode_core::scroll::{ScrollCommand, ScrollConfig};
 
-use crate::storage::{load_scroll, load_templates, load_variables, resolve_package_path, resolve_search_locations, resolve_target_path, save_target_file};
 use crate::greetings::create_progress_bar;
 use crate::renderer::builder::RendererBuilder;
+use crate::storage::{load_scroll, load_templates, load_variables, resolve_package_path, resolve_search_locations, resolve_target_path, save_target_file};
 use crate::structure::list_scrolls;
 
 pub fn create_generate_command(context: &Context) -> Result<Command, Box<dyn Error>> {

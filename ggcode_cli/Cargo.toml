@@ -27,4 +27,3 @@ lazy_static = "1.4.0"
 regex = "1.10.3"
 mlua = { version = "0.9.5", features = ["luau", "serialize"] }
 run_script = "0.10.1"
-erased-serde = "0.4.3"

@@ -9,12 +9,11 @@ use glob::glob;
 use relative_path::{RelativePath, RelativePathBuf};
 use serde_yaml::{Mapping, Value};
 
-use ggcode_core::config::{DEFAULT_CONFIG_NAME, PackageConfig, PackageData};
+use ggcode_core::config::PackageConfig;
 use ggcode_core::scroll::ScrollConfig;
 
 use crate::renderer::luau_evaluator::LuauEvaluatorBuilder;
 use crate::renderer::luau_extras::LuauShell;
-use crate::types::AppResult;
 use crate::utils::merge_yaml;
 
 pub fn resolve_target_path(path: &String) -> Result<PathBuf, Box<dyn Error>> {
@@ -58,17 +57,17 @@ pub fn resolve_inner_path(path: &String) -> Result<RelativePathBuf, Box<dyn Erro
     }
 }
 
-fn resolve_dependencies(config: &PackageConfig) -> AppResult<BTreeMap<String, PackageConfig>> {
-    let mut dependencies: BTreeMap<String, PackageConfig> = BTreeMap::new();
-    for dependency in &config.repositories {
-        let relative_path = RelativePath::new("ggcode_modules")
-            .join(&dependency.name)
-            .join(&DEFAULT_CONFIG_NAME);
-        let dependency_config = load_config(&relative_path)?;
-        dependencies.insert(dependency.name.clone(), dependency_config);
-    }
-    Ok(dependencies)
-}
+// fn resolve_dependencies(config: &PackageConfig) -> AppResult<BTreeMap<String, PackageConfig>> {
+//     let mut dependencies: BTreeMap<String, PackageConfig> = BTreeMap::new();
+//     for dependency in &config.repositories {
+//         let relative_path = RelativePath::new("ggcode_modules")
+//             .join(&dependency.name)
+//             .join(&DEFAULT_CONFIG_NAME);
+//         let dependency_config = load_config(&relative_path)?;
+//         dependencies.insert(dependency.name.clone(), dependency_config);
+//     }
+//     Ok(dependencies)
+// }
 
 pub fn resolve_search_locations(config: &PackageConfig) -> Vec<RelativePathBuf> {
     let mut locations: Vec<RelativePathBuf> = vec![];
@@ -85,14 +84,14 @@ pub fn resolve_search_locations(config: &PackageConfig) -> Vec<RelativePathBuf> 
     locations
 }
 
-pub fn resolve_package(config: &PackageConfig) -> AppResult<PackageData> {
-    let dependencies = resolve_dependencies(config)?;
-    let data = PackageData {
-        config: config.clone(),
-        dependencies,
-    };
-    Ok(data)
-}
+// pub fn resolve_package(config: &PackageConfig) -> AppResult<PackageData> {
+//     let dependencies = resolve_dependencies(config)?;
+//     let data = PackageData {
+//         config: config.clone(),
+//         dependencies,
+//     };
+//     Ok(data)
+// }
 
 pub fn save_config(relative_path: &RelativePathBuf, config: PackageConfig) -> Result<(), Box<dyn Error>> {
     let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
@@ -202,7 +201,7 @@ pub fn load_luau(relative_path: &RelativePathBuf, search_locations: &Vec<Relativ
     let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
     let path = relative_path.to_path(&current_dir);
 
-    let source = fs::read_to_string(path)?;
+    let source = fs::read_to_string(&path)?;
 
     let mut builder = LuauEvaluatorBuilder::new()
         .enable_shell(LuauShell);
@@ -211,9 +210,13 @@ pub fn load_luau(relative_path: &RelativePathBuf, search_locations: &Vec<Relativ
         builder = builder.with_path_entry(&rp.to_path(&current_dir));
     }
 
-    let evaluator = builder.build()?;
+    let evaluator = builder
+        .with_global("SOURCE_PATH", &path.to_str().unwrap().to_string())
+        .build()?;
 
     let config = evaluator.eval_value(&source)?;
+
+    // println!("Config: {}", serde_yaml::to_string(&config)?);
 
     Ok(config)
 }

@@ -1,10 +1,13 @@
 use std::error::Error;
+
 use clap::{arg, ArgMatches, Command, ValueHint};
 use console::style;
-use prettytable::format::FormatBuilder;
 use prettytable::{format, row, Table};
-use ggcode_core::ResolvedContext;
+use prettytable::format::FormatBuilder;
+
 use ggcode_core::config::{PackageConfig, TargetEntry};
+use ggcode_core::ResolvedContext;
+
 use crate::storage::{resolve_inner_path, resolve_target_path, save_config};
 use crate::terminal::TerminalInput;
 

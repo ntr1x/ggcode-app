@@ -5,7 +5,7 @@ use mlua::{Lua, LuaSerdeExt, Table};
 use serde::Serialize;
 use serde_yaml::{to_value, Value};
 
-use crate::renderer::luau_extras::{LuauShell, LuauTemplate, trace_mlua_error};
+use crate::renderer::luau_extras::{LuauShell, trace_mlua_error};
 use crate::types::{AppResult, ErrorBox};
 
 #[derive(Default)]
@@ -18,7 +18,7 @@ pub struct LuauEvaluatorBuilder {
     pub(crate) globals: BTreeMap<String, Value>,
     pub(crate) paths: Vec<PathBuf>,
     pub(crate) shell: Option<LuauShell>,
-    pub(crate) template: Option<LuauTemplate>,
+    // pub(crate) template: Option<LuauTemplate>,
 }
 
 impl LuauEvaluatorBuilder {
@@ -36,10 +36,10 @@ impl LuauEvaluatorBuilder {
         self
     }
 
-    pub fn enable_template(mut self, template: LuauTemplate) -> LuauEvaluatorBuilder {
-        self.template = Some(template);
-        self
-    }
+    // pub fn enable_template(mut self, template: LuauTemplate) -> LuauEvaluatorBuilder {
+    //     self.template = Some(template);
+    //     self
+    // }
 
     pub fn with_path_entry(mut self, entry: &PathBuf) -> LuauEvaluatorBuilder{
         self.paths.push(entry.clone());

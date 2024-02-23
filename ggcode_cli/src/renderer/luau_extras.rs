@@ -2,6 +2,7 @@ use std::{cmp, thread};
 use std::collections::HashMap;
 use std::error::Error;
 use std::io::{BufRead, BufReader};
+use std::path::PathBuf;
 use std::sync::mpsc::sync_channel;
 
 use console::{Color, style};
@@ -35,7 +36,7 @@ impl UserData for LuauTemplate {
 pub struct LuauShell;
 
 impl LuauShell {
-    fn exec(command: &String) -> AppResult<String>{
+    fn exec(workdir: &String, command: &String) -> AppResult<String> {
         let mut env_vars = HashMap::new();
         env_vars.insert("CLICOLOR_FORCE".to_string(), "1".to_string());
         env_vars.insert("CLICOLOR".to_string(), "1".to_string());
@@ -43,6 +44,7 @@ impl LuauShell {
         env_vars.insert("TERM".to_string(), "xterm-256color".to_string());
 
         let mut options = ScriptOptions::new();
+        options.working_directory = Some(PathBuf::from(workdir).canonicalize()?);
         options.env_vars = Some(env_vars);
 
         let mut script = run_script::spawn_script!(command, options)?;
@@ -88,8 +90,8 @@ impl LuauShell {
 
 impl UserData for LuauShell {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_function("exec", |_, (_ud, command): (AnyUserData, String)| {
-            match Self::exec(&command) {
+        methods.add_function("exec", |_, (_ud, path, command): (AnyUserData, String, String)| {
+            match Self::exec(&path, &command) {
                 Ok(stdout_string) => {
                     let encoded = stdout_string
                         .chars()
@@ -129,7 +131,7 @@ pub fn trace_mlua_error(script: &String, e: &Box<dyn Error>) {
             let lower = cmp::max(0, data.line as i32 - 1) as usize;
             let upper = cmp::min(data.line + 1, vec.len() - 1) + 1;
             for i in lower..upper {
-                let row = format!("{: >6} │ {}", format!("L{i}"), vec[i]);
+                let row = format!("{: >6} │ {}", format!("L{}", i + 1), vec[i]);
                 let styled = match i == data.line {
                     true => format!("{: <80}", style(row).white().bg(Color::Color256(52))),
                     false => format!("{: <80}", style(row).white().bg(Color::Color256(17))),
