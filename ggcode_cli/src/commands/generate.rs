@@ -1,4 +1,6 @@
+use std::collections::BTreeMap;
 use std::error::Error;
+use std::path::PathBuf;
 
 use clap::{Arg, arg, ArgMatches, Command};
 use console::style;
@@ -7,13 +9,12 @@ use relative_path::RelativePathBuf;
 use serde_yaml::{Mapping, Value};
 
 use ggcode_core::{Context, ResolvedContext};
-use ggcode_core::scroll::{Scroll, ScrollCommand};
+use ggcode_core::scroll::{ScrollConfig, ScrollCommand};
 
-use crate::storage::{load_scroll, load_templates, load_variables, resolve_package_path, resolve_target_path, save_target_file};
+use crate::storage::{load_scroll, load_templates, load_variables, resolve_package_path, resolve_search_locations, resolve_target_path, save_target_file};
 use crate::greetings::create_progress_bar;
 use crate::renderer::builder::RendererBuilder;
 use crate::structure::list_scrolls;
-use crate::utils::evaluate;
 
 pub fn create_generate_command(context: &Context) -> Result<Command, Box<dyn Error>> {
     let mut command = Command::new("generate")
@@ -37,7 +38,7 @@ pub fn create_generate_command(context: &Context) -> Result<Command, Box<dyn Err
 pub fn create_generate_scroll_command(
     context: &ResolvedContext,
     scroll_name: &String,
-    scroll: &Scroll
+    scroll: &ScrollConfig
 ) -> Result<Command, Box<dyn Error>> {
     let mut command = Command::new(scroll_name.clone())
         .about("Casting spells from a magical scroll")
@@ -63,7 +64,7 @@ pub fn create_generate_scroll_command(
 pub fn create_generate_scroll_spell_command(
     _context: &ResolvedContext,
     _scroll_name: &String,
-    _scroll: &Scroll,
+    _scroll: &ScrollConfig,
     scroll_command: &ScrollCommand
 ) -> Result<Command, Box<dyn Error>> {
     let mut subcommand = Command::new(&scroll_command.name)
@@ -117,7 +118,7 @@ pub fn execute_generate_scroll_command(context: &ResolvedContext, name: &String,
     }
 }
 
-fn execute_generate_scroll_spell_command(context: &ResolvedContext, name: &String, scroll: &Scroll, spell_name: &String, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
+fn execute_generate_scroll_spell_command(context: &ResolvedContext, name: &String, scroll: &ScrollConfig, spell_name: &String, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
     let spell = scroll.commands
         .iter()
         .find(|c| &c.name == spell_name)
@@ -156,12 +157,17 @@ fn execute_generate_scroll_spell_command(context: &ResolvedContext, name: &Strin
     };
 
     let path = resolve_package_path(name)?;
-    let values_directory_path = path.join("variables");
 
-    let variables = load_variables(&values_directory_path)?;
-    let variables = evaluate(&variables)?;
+    let values_directory_path = path.join("variables");
+    let search_locations = resolve_search_locations(&context.current_config);
+
+    let variables = load_variables(&values_directory_path, &search_locations)?;
 
     let mut builder = RendererBuilder::new();
+
+    // for (key, value) in variables.as_mapping().unwrap() {
+    //     builder = builder.with_value(key.as_str().unwrap().to_string(), value);
+    // }
 
     for (key, value) in variables.as_mapping().unwrap() {
         builder = builder.with_value(key.as_str().unwrap().to_string(), value);
@@ -196,7 +202,7 @@ fn execute_generate_scroll_spell_command(context: &ResolvedContext, name: &Strin
     builder = builder.with_value("args", &args_value);
 
     let templates_directory_path = path.join("templates");
-    let templates = load_templates(templates_directory_path);
+    let templates = load_templates(&templates_directory_path);
 
     for (key, value) in &templates {
         builder = builder.with_file_template(key, value);

@@ -6,9 +6,9 @@ use prettytable::{format, row, Table};
 use prettytable::format::FormatBuilder;
 use relative_path::RelativePathBuf;
 
-use ggcode_core::config::{Config, ScrollEntry};
+use ggcode_core::config::{PackageConfig, ScrollEntry};
 use ggcode_core::ResolvedContext;
-use ggcode_core::scroll::{Scroll, ScrollCommand};
+use ggcode_core::scroll::{ScrollConfig, ScrollCommand};
 
 use crate::storage::{resolve_inner_path, rm_scroll, save_config, save_scroll, save_string};
 use crate::structure::list_scrolls;
@@ -80,7 +80,7 @@ fn execute_scroll_remove_command(context: &ResolvedContext, matches: &ArgMatches
     match registration {
         None => {},
         Some(_) => {
-            let config = Config {
+            let config = PackageConfig {
                 scrolls: scroll_entries,
                 ..context.current_config.to_owned()
             };
@@ -122,7 +122,7 @@ fn execute_scroll_add_command(context: &ResolvedContext, matches: &ArgMatches) -
             println!("Skipped! (Duplicate)");
         },
         None => {
-            let scroll = Scroll {
+            let scroll = ScrollConfig {
                 commands: vec![ScrollCommand {
                     name: "default".to_string(),
                     about: Some("Default command".to_string()),
@@ -134,7 +134,7 @@ fn execute_scroll_add_command(context: &ResolvedContext, matches: &ArgMatches) -
                 ScrollEntry { path: relative_path.to_string() }
             ];
 
-            let config = Config {
+            let config = PackageConfig {
                 scrolls: [&context.current_config.scrolls[..], &scroll_entries[..]].concat(),
                 ..context.current_config.to_owned()
             };

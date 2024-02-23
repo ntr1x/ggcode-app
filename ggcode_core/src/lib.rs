@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 pub mod config;
 
-use config::Config;
+use config::PackageConfig;
 pub mod scroll;
 
 #[derive(Debug, Clone)]
@@ -11,7 +11,7 @@ pub struct Context {
     pub config_path: String,
     pub directory_path: PathBuf,
     pub directory_name: String,
-    pub current_config: Option<Config>,
+    pub current_config: Option<PackageConfig>,
 }
 
 #[derive(Debug, Clone)]
@@ -19,7 +19,7 @@ pub struct ResolvedContext {
     pub config_path: String,
     pub directory_path: PathBuf,
     pub directory_name: String,
-    pub current_config: Config,
+    pub current_config: PackageConfig,
 }
 
 impl Context {

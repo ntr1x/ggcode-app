@@ -5,7 +5,7 @@ use console::style;
 use prettytable::{format, row, Table};
 use prettytable::format::FormatBuilder;
 
-use ggcode_core::config::{Config, RepositoryEntry};
+use ggcode_core::config::{PackageConfig, RepositoryEntry};
 use ggcode_core::ResolvedContext;
 
 use crate::storage::{resolve_inner_path, save_config};
@@ -73,7 +73,7 @@ fn execute_repository_remove_command(context: ResolvedContext, matches: &ArgMatc
         eprintln!("{} Nothing changed. No repository with name: {}", style("[WARN]").yellow(), name)
     }
 
-    let config = Config {
+    let config = PackageConfig {
         repositories,
         ..context.current_config
     };
@@ -111,7 +111,7 @@ fn execute_repository_add_command(context: ResolvedContext, matches: &ArgMatches
             name: name.to_string(),
             uri: uri.to_string(),
         }];
-        let config = Config {
+        let config = PackageConfig {
             repositories: [&context.current_config.repositories[..], &repositories[..]].concat(),
             ..context.current_config
         };

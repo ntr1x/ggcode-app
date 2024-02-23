@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 
 pub const DEFAULT_CONFIG_NAME: &str = "ggcode-info.yaml";
@@ -20,7 +22,7 @@ pub struct ScrollEntry {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Config {
+pub struct PackageConfig {
     pub name: String,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub scrolls: Vec<ScrollEntry>,
@@ -28,4 +30,9 @@ pub struct Config {
     pub repositories: Vec<RepositoryEntry>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub targets: Vec<TargetEntry>,
+}
+
+pub struct PackageData {
+    pub config: PackageConfig,
+    pub dependencies: BTreeMap<String, PackageConfig>,
 }

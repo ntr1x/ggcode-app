@@ -1,12 +1,12 @@
 use std::collections::BTreeMap;
 
 use ggcode_core::ResolvedContext;
-use ggcode_core::scroll::Scroll;
+use ggcode_core::scroll::ScrollConfig;
 
 use crate::storage::{load_config, load_scroll, resolve_inner_path};
 
 pub struct ScrollRef {
-    pub scroll: Option<Scroll>,
+    pub scroll: Option<ScrollConfig>,
     pub scroll_path: String,
 }
 

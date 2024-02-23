@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Scroll {
+pub struct ScrollConfig {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub commands: Vec<ScrollCommand>,
 }

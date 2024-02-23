@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 
-use mlua::{Lua, LuaSerdeExt};
+use mlua::{Lua, LuaSerdeExt, Table};
 use serde::Serialize;
 use serde_yaml::{to_value, Value};
 
@@ -15,6 +16,7 @@ pub struct LuauEvaluator {
 #[derive(Default)]
 pub struct LuauEvaluatorBuilder {
     pub(crate) globals: BTreeMap<String, Value>,
+    pub(crate) paths: Vec<PathBuf>,
     pub(crate) shell: Option<LuauShell>,
     pub(crate) template: Option<LuauTemplate>,
 }
@@ -39,11 +41,24 @@ impl LuauEvaluatorBuilder {
         self
     }
 
+    pub fn with_path_entry(mut self, entry: &PathBuf) -> LuauEvaluatorBuilder{
+        self.paths.push(entry.clone());
+        self
+    }
+
     pub fn build(&self) -> AppResult<LuauEvaluator> {
         let lua = Lua::new();
 
         {
             let globals = &lua.globals();
+
+            let search_path = &self.paths
+                .iter()
+                .map(|p| p.to_str().unwrap().to_string())
+                .collect::<Vec<String>>()
+                .join(";");
+
+            // println!("Search Path: {}", search_path);
 
             for (key, value) in &self.globals {
                 let lua_value = lua.to_value(value)?;
@@ -54,6 +69,10 @@ impl LuauEvaluatorBuilder {
                 let userdata = lua.create_userdata(shell.clone())?;
                 globals.set("shell", userdata)?;
             }
+
+            globals
+                .get::<_, Table>("package")?
+                .set("path", search_path.clone())?;
         }
 
         let evaluator = LuauEvaluator {

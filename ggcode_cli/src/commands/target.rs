@@ -4,7 +4,7 @@ use console::style;
 use prettytable::format::FormatBuilder;
 use prettytable::{format, row, Table};
 use ggcode_core::ResolvedContext;
-use ggcode_core::config::{Config, TargetEntry};
+use ggcode_core::config::{PackageConfig, TargetEntry};
 use crate::storage::{resolve_inner_path, resolve_target_path, save_config};
 use crate::terminal::TerminalInput;
 
@@ -70,7 +70,7 @@ fn execute_target_remove_command(context: ResolvedContext, matches: &ArgMatches)
         eprintln!("{} Nothing changed. No target with name: {}", style("[WARN]").yellow(), name)
     }
 
-    let config = Config {
+    let config = PackageConfig {
         targets,
         ..context.current_config
     };
@@ -113,7 +113,7 @@ fn execute_target_add_command(context: ResolvedContext, matches: &ArgMatches) ->
                 name: name.to_string(),
                 path: path.as_path().to_str().unwrap().to_string()
             }];
-            let config = Config {
+            let config = PackageConfig {
                 targets: [&context.current_config.targets[..], &targets[..]].concat(),
                 ..context.current_config
             };

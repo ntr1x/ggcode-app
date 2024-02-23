@@ -126,7 +126,9 @@ pub fn trace_mlua_error(script: &String, e: &Box<dyn Error>) {
         Ok(Some(ErrorDescription::SourceError(data))) => {
             let vec: Vec<&str> = script.lines().collect();
             let mut area_vec = vec![];
-            for i in cmp::max(0, data.line - 1)..cmp::min(data.line + 1, vec.len() - 1) + 1 {
+            let lower = cmp::max(0, data.line as i32 - 1) as usize;
+            let upper = cmp::min(data.line + 1, vec.len() - 1) + 1;
+            for i in lower..upper {
                 let row = format!("{: >6} │ {}", format!("L{i}"), vec[i]);
                 let styled = match i == data.line {
                     true => format!("{: <80}", style(row).white().bg(Color::Color256(52))),

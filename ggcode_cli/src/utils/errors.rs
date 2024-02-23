@@ -1,3 +1,4 @@
+use std::cmp;
 use std::error::Error;
 
 use lazy_static::lazy_static;
@@ -36,6 +37,7 @@ fn describe_mlua_error(e: &Box<dyn Error>) -> AppResult<Option<ErrorDescription>
                     let location = v.name("location").unwrap().as_str().to_string();
                     let details = v.name("details").unwrap().as_str().to_string();
                     let line = v.name("line").unwrap().as_str().parse::<usize>()?;
+                    let line = cmp::min(0, (line as i32) - 1) as usize;
                     Ok(Some(ErrorDescription::SourceError(SourceErrorData { location, line, details })))
                 }
             }
@@ -50,6 +52,7 @@ fn describe_mlua_error(e: &Box<dyn Error>) -> AppResult<Option<ErrorDescription>
                     let location = v.name("location").unwrap().as_str().to_string();
                     let details = v.name("details").unwrap().as_str().to_string();
                     let line = v.name("line").unwrap().as_str().parse::<usize>()?;
+                    let line = cmp::min(0, (line as i32) - 1) as usize;
                     Ok(Some(ErrorDescription::SourceError(SourceErrorData { location, line, details })))
                 }
             }

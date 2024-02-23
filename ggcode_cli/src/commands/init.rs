@@ -7,7 +7,7 @@ use dialoguer::theme::ColorfulTheme;
 use lazy_static::lazy_static;
 use regex::Regex;
 
-use ggcode_core::config::{Config, RepositoryEntry, ScrollEntry, TargetEntry};
+use ggcode_core::config::{PackageConfig, RepositoryEntry, ScrollEntry, TargetEntry};
 use ggcode_core::Context;
 
 use crate::storage::{resolve_inner_path, save_config};
@@ -69,7 +69,7 @@ pub fn execute_init_command(context: &Context, matches: &ArgMatches) -> Result<(
     let targets = setup_targets(&context.current_config, matches)?;
     let scrolls = setup_scrolls(&context.current_config, matches)?;
 
-    let config = Config {
+    let config = PackageConfig {
         name: name.to_string(),
         scrolls,
         targets,
@@ -79,14 +79,14 @@ pub fn execute_init_command(context: &Context, matches: &ArgMatches) -> Result<(
     save_config(&resolve_inner_path(&context.config_path)?, config)
 }
 
-fn setup_scrolls(config: &Option<Config>, _matches: &ArgMatches) -> Result<Vec<ScrollEntry>, Box<dyn Error>> {
+fn setup_scrolls(config: &Option<PackageConfig>, _matches: &ArgMatches) -> Result<Vec<ScrollEntry>, Box<dyn Error>> {
     match config {
         None => Ok(vec!()),
         Some(config) => Ok(config.scrolls.clone())
     }
 }
 
-fn setup_repositories(config: &Option<Config>, matches: &ArgMatches) -> Result<Vec<RepositoryEntry>, Box<dyn Error>> {
+fn setup_repositories(config: &Option<PackageConfig>, matches: &ArgMatches) -> Result<Vec<RepositoryEntry>, Box<dyn Error>> {
     let repository_inputs = matches.get_many::<String>("repository");
 
     lazy_static! {
@@ -187,7 +187,7 @@ fn setup_repositories(config: &Option<Config>, matches: &ArgMatches) -> Result<V
     Ok(repositories)
 }
 
-fn setup_targets(config: &Option<Config>, matches: &ArgMatches) -> Result<Vec<TargetEntry>, Box<dyn Error>> {
+fn setup_targets(config: &Option<PackageConfig>, matches: &ArgMatches) -> Result<Vec<TargetEntry>, Box<dyn Error>> {
     let target_inputs = matches.get_many::<String>("target");
 
     lazy_static! {
