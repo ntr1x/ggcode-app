@@ -1,8 +1,10 @@
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
+use console::style;
 use relative_path::RelativePathBuf;
 
+use crate::generator::GeneratorEvent::{Finish, Start};
 use crate::renderer::builder::RendererBuilder;
 use crate::ResolvedContext;
 use crate::scroll::find_scroll_by_full_name;
@@ -72,8 +74,8 @@ impl DefaultGenerator {
         let noop = &builder.build_noop()?;
 
         for (key, _value) in &templates {
-            // let pb = &self.progress_factory
-            //     .start(&format!("Rendering {} template...", style(key).yellow()).to_string());
+            let message = format!("Rendering {} template...", style(key).yellow());
+            self.notify(Start(message));
             let file_path = lua.eval_string_template(format!("`{}`", key))?;
             let file_relative_path = RelativePathBuf::from(&file_path);
 
@@ -94,11 +96,19 @@ impl DefaultGenerator {
 
             match dry_run {
                 true => {
-                    // pb.finish(&format!("{} Rendered template: {}", style("[DONE]").green(), &file_path).to_string());
+                    let message = format!(
+                        "{} Rendered template: {}",
+                        style("[DONE]").green(),
+                        &file_path);
+                    self.notify(Finish(message.to_string()));
                 }
                 false => {
                     let file_path = target_file_relative_path.to_path(&target_path);
-                    // pb.finish(&format!("{} Generated file: {}", style("[DONE]").green(), file_path.to_str().unwrap().to_string()).to_string());
+                    let message = format!(
+                        "{} Generated file: {}",
+                        style("[DONE]").green(),
+                        file_path.to_str().unwrap().to_string());
+                    self.notify(Finish(message));
                     save_target_file(&target_path, &target_file_relative_path, &file_content)?;
                 }
             }

@@ -128,7 +128,7 @@ impl UserData for LuauShell {
 }
 
 #[derive(Serialize, Deserialize)]
-struct GenerationTarget {
+pub struct GenerationTarget {
     target_name: Option<String>,
     target_path: Option<String>,
     dry_run: Option<bool>,
@@ -144,17 +144,17 @@ pub struct LuauEngine {
 
 impl LuauEngine {
     pub fn generate(&self, scroll_name: &String, target: &GenerationTarget, variables: &Value) -> AppResult<()> {
-        println!("scroll: {}", scroll_name);
-        println!("target_path: {}", &target.target_path.clone().unwrap_or("<none>".to_string()));
-        println!("target_name: {}", &target.target_name.clone().unwrap_or("<none>".to_string()));
-        println!("variables:\n{}", serde_yaml::to_string(variables)?);
+        // println!("scroll: {}", scroll_name);
+        // println!("target_path: {}", &target.target_path.clone().unwrap_or("<none>".to_string()));
+        // println!("target_name: {}", &target.target_name.clone().unwrap_or("<none>".to_string()));
+        // println!("variables:\n{}", serde_yaml::to_string(variables)?);
 
         let resolved_target_path = resolve_target(
             &self.context,
             target.target_name.clone(),
             target.target_path.clone())?;
 
-        &self.generator.generate(
+        self.generator.generate(
             scroll_name,
             &resolved_target_path,
             target.dry_run.unwrap_or(false))?;
