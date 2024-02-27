@@ -9,11 +9,11 @@ use glob::glob;
 use relative_path::{RelativePath, RelativePathBuf};
 use serde_yaml::{Mapping, Value};
 
-use crate::chain::ChainConfig;
 use crate::config::PackageConfig;
 use crate::renderer::luau_evaluator::LuauEvaluatorBuilder;
 use crate::renderer::luau_extras::LuauShell;
-use crate::scroll::ScrollConfig;
+use crate::ResolvedContext;
+use crate::types::AppResult;
 use crate::utils::merge_yaml;
 
 pub fn resolve_target_path(path: &String) -> Result<PathBuf, Box<dyn Error>> {
@@ -54,6 +54,25 @@ pub fn resolve_inner_path(path: &String) -> Result<RelativePathBuf, Box<dyn Erro
         "" => return Err("Invalid path. Path should not be empty.".into()),
         "." => return Err(format!("Invalid path: {}. Path should not point to the project directory.", style(normalized_path).yellow()).into()),
         _ => Ok(relative_path)
+    }
+}
+
+pub fn resolve_target(context: &ResolvedContext, target_name: Option<String>, target_path: Option<String>) -> AppResult<PathBuf> {
+    match (target_path, target_name) {
+        (None, None) => return Err("Invalid usage. Specify `--target` or `--target-path` option.".into()),
+        (None, Some(name)) => {
+            let target = context.current_config.targets
+                .iter()
+                .find(|t| t.name == name)
+                .ok_or::<Box<dyn Error>>(format!("Invalid usage. Unknown target: {}", style(name).yellow()).as_str().into())?;
+            resolve_target_path(&target.path)
+        },
+        (Some(path), None) => resolve_target_path(&path),
+        (Some(_), Some(_)) => return Err(format!(
+            "Invalid usage. The options {target} and {target_path} should not be used simultaneously.",
+            target = style("target").yellow(),
+            target_path = style("target_path").yellow()
+        ).into()),
     }
 }
 
@@ -116,50 +135,24 @@ pub fn rm_scroll(relative_path: &RelativePathBuf) -> Result<(), Box<dyn Error>> 
     Ok(())
 }
 
-pub fn save_scroll(relative_path: &RelativePathBuf, scroll: ScrollConfig) -> Result<(), Box<dyn Error>> {
-    let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
-    let path = relative_path.to_path(current_dir);
-
-    let prefix = path.parent().unwrap();
-    fs::create_dir_all(prefix).unwrap();
-
-    let f = fs::OpenOptions::new()
-        .write(true)
-        .truncate(true)
-        .create(true)
-        .open(path)
-        .expect("Couldn't open scroll file");
-
-    serde_yaml::to_writer(f, &scroll).unwrap();
-
-    Ok(())
-}
-
-pub fn rm_chain(relative_path: &RelativePathBuf) -> Result<(), Box<dyn Error>> {
-    let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
-    let path = relative_path.to_path(current_dir);
-    fs::remove_dir_all(path)?;
-    Ok(())
-}
-
-pub fn save_chain(relative_path: &RelativePathBuf, chain: ChainConfig) -> Result<(), Box<dyn Error>> {
-    let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
-    let path = relative_path.to_path(current_dir);
-
-    let prefix = path.parent().unwrap();
-    fs::create_dir_all(prefix).unwrap();
-
-    let f = fs::OpenOptions::new()
-        .write(true)
-        .truncate(true)
-        .create(true)
-        .open(path)
-        .expect("Couldn't open chain file");
-
-    serde_yaml::to_writer(f, &chain).unwrap();
-
-    Ok(())
-}
+// pub fn save_scroll(relative_path: &RelativePathBuf, scroll: ScrollConfig) -> Result<(), Box<dyn Error>> {
+//     let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
+//     let path = relative_path.to_path(current_dir);
+//
+//     let prefix = path.parent().unwrap();
+//     fs::create_dir_all(prefix).unwrap();
+//
+//     let f = fs::OpenOptions::new()
+//         .write(true)
+//         .truncate(true)
+//         .create(true)
+//         .open(path)
+//         .expect("Couldn't open scroll file");
+//
+//     serde_yaml::to_writer(f, &scroll).unwrap();
+//
+//     Ok(())
+// }
 
 pub fn save_string(relative_path: &RelativePathBuf, content: String) -> Result<(), Box<dyn Error>> {
     let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
@@ -173,10 +166,20 @@ pub fn save_string(relative_path: &RelativePathBuf, content: String) -> Result<(
         .truncate(true)
         .create(true)
         .open(path)
-        .expect("Couldn't open scroll file");
+        .expect("Couldn't open file");
 
     f.write_all(content.as_bytes()).unwrap();
     Ok(())
+}
+
+pub fn load_string(_config: &PackageConfig, relative_path: &RelativePathBuf) -> AppResult<String> {
+    let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
+    let path = relative_path.to_path(current_dir);
+    let string = fs::read_to_string(&path).or_else(|e| {
+        let error: Box<dyn Error> = format!("Cannot read from: {}. {}", &path.to_str().unwrap(), e).into();
+        return Err(error)
+    })?;
+    Ok(string)
 }
 
 pub fn save_target_file(target_dir: &PathBuf, relative_path: &RelativePathBuf, content: &String) -> Result<(), Box<dyn Error>> {
@@ -205,23 +208,14 @@ pub fn load_config(relative_path: &RelativePathBuf) -> Result<PackageConfig, Box
     Ok(config)
 }
 
-pub fn load_scroll(relative_path: &RelativePathBuf) -> Result<ScrollConfig, Box<dyn Error>> {
-    let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
-    let path = relative_path.to_path(current_dir);
-
-    let f = fs::File::open(path)?;
-    let config = serde_yaml::from_reader(f)?;
-    Ok(config)
-}
-
-pub fn load_chain(relative_path: &RelativePathBuf) -> Result<ChainConfig, Box<dyn Error>> {
-    let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
-    let path = relative_path.to_path(current_dir);
-
-    let f = fs::File::open(path)?;
-    let config = serde_yaml::from_reader(f)?;
-    Ok(config)
-}
+// pub fn load_scroll(relative_path: &RelativePathBuf) -> Result<ScrollConfig, Box<dyn Error>> {
+//     let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
+//     let path = relative_path.to_path(current_dir);
+//
+//     let f = fs::File::open(path)?;
+//     let config = serde_yaml::from_reader(f)?;
+//     Ok(config)
+// }
 
 pub fn load_yaml(relative_path: &RelativePathBuf) -> Result<Value, Box<dyn Error>> {
     let current_dir = env::current_dir().unwrap().canonicalize().unwrap();

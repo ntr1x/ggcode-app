@@ -1,6 +1,7 @@
 use std::error::Error;
 
-use clap::{arg, ArgMatches, Command};
+use clap::{arg, ArgAction, ArgMatches, Command};
+use console::style;
 use indoc::{formatdoc, indoc};
 use prettytable::{format, row, Table};
 use prettytable::format::FormatBuilder;
@@ -8,9 +9,11 @@ use relative_path::RelativePathBuf;
 
 use ggcode_core::config::{PackageConfig, ScrollEntry};
 use ggcode_core::ResolvedContext;
-use ggcode_core::scroll::{list_scrolls, ScrollCommand, ScrollConfig};
-use ggcode_core::storage::{resolve_inner_path, rm_scroll, save_config, save_scroll, save_string};
-use crate::terminal::TerminalInput;
+use ggcode_core::scroll::{find_scroll_by_name, list_scrolls};
+use ggcode_core::storage::{resolve_inner_path, rm_scroll, save_config, save_string};
+
+use crate::terminal::flag::TerminalFlag;
+use crate::terminal::input::TerminalInput;
 
 pub fn create_scroll_command() -> Command {
     Command::new("scroll")
@@ -33,6 +36,7 @@ fn create_scroll_list_command() -> Command {
 fn create_scroll_add_command() -> Command {
     Command::new("add")
         .about("Add a scroll")
+        .arg(arg!(-n --name <String> "Name of the scroll"))
         .arg(arg!(-p --path <String> "Path to the scroll directory"))
 }
 
@@ -40,7 +44,8 @@ fn create_scroll_remove_command() -> Command {
     Command::new("remove")
         .about("Remove a scroll")
         .alias("rm")
-        .arg(arg!(-p --path <String> "Path to the scroll directory"))
+        .arg(arg!(-n --name <String> "Name of the scroll"))
+        .arg(arg!(-f --force "Force removal of the scroll directory").action(ArgAction::Set))
 }
 
 pub fn execute_scroll_command(context: &ResolvedContext, matches: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
@@ -53,109 +58,111 @@ pub fn execute_scroll_command(context: &ResolvedContext, matches: &ArgMatches) -
 }
 
 fn execute_scroll_remove_command(context: &ResolvedContext, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
-    let relative_path = TerminalInput::builder()
+    let name = TerminalInput::builder()
         .matches(matches)
-        .name("path")
-        .prompt("Relative inner path to a scroll:")
+        .name("name")
+        .prompt("Name of the scroll to remove:")
         .required(true)
         .build()?
-        .read(resolve_inner_path)?
+        .read_string()?
         .unwrap();
 
-    let registration = find_scroll_with_name(context, &relative_path);
+    let force = TerminalFlag::builder()
+        .matches(matches)
+        .name("force")
+        .prompt("Remove also a scroll directory?")
+        .required(true)
+        .default_value(false)
+        .build()?
+        .read_bool()?
+        .unwrap();
 
-    let scroll_entries: Vec<ScrollEntry> = context.current_config.scrolls
-        .iter()
-        .filter(|r| {
-            match resolve_inner_path(&r.path).ok() {
-                None => true,
-                Some(rp) => !relative_path.eq(&rp),
-            }
-        })
-        .map(|e| e.clone())
-        .collect();
+    let mut scrolls: Vec<ScrollEntry> = vec![];
 
-    match registration {
-        None => {},
-        Some(_) => {
-            let config = PackageConfig {
-                scrolls: scroll_entries,
-                ..context.current_config.to_owned()
-            };
+    let mut scroll_to_delete: Option<ScrollEntry> = None;
 
-            save_config(&resolve_inner_path(&context.config_path)?, config)?;
+    for scroll in &context.current_config.scrolls {
+        if &scroll.name != &name {
+            scrolls.push(scroll.clone())
+        } else {
+            scroll_to_delete = Some(scroll.clone());
+        }
+    }
+
+    if &scrolls.len() == &context.current_config.scrolls.len() {
+        return Err(format!("No scroll with name: {}. Nothing changed.", name).into());
+    }
+
+    let config = PackageConfig {
+        scrolls,
+        ..context.current_config.to_owned()
+    };
+
+    save_config(&resolve_inner_path(&context.config_path)?, config)?;
+
+    if let Some(scroll) = scroll_to_delete {
+        let relative_path = RelativePathBuf::from(scroll.path);
+        if force {
             rm_scroll(&relative_path)
                 .map_err::<Box<dyn Error>, _>(|e| format!("Cannot remove scroll directory: {}", e).into())?;
+        } else {
+            eprintln!("{} Configuration entry has been unregistered, but the data in directory {} will not be deleted automatically. Please delete it manually if needed.", style("[INFO]").yellow(), relative_path);
         }
-    };
+    }
 
     Ok(())
 }
 
-fn find_scroll_with_name<'a>(context: &'a ResolvedContext, relative_path: &RelativePathBuf) -> Option<&'a ScrollEntry> {
-    context.current_config.scrolls
-        .iter()
-        .find(|r| {
-            match resolve_inner_path(&r.path).ok() {
-                None => false,
-                Some(rp) => relative_path.eq(&rp),
-            }
-        })
-}
-
 fn execute_scroll_add_command(context: &ResolvedContext, matches: &ArgMatches) -> Result<(), Box<dyn Error>> {
+    let name = TerminalInput::builder()
+        .matches(matches)
+        .name("name")
+        .prompt("Name of the scroll:")
+        .required(true)
+        .build()?
+        .read_string()?
+        .unwrap();
+
     let relative_path = TerminalInput::builder()
         .matches(matches)
         .name("path")
-        .prompt("Relative inner path to a scroll:")
+        .prompt("Relative inner path to the scroll directory:")
         .required(true)
         .build()?
         .read(resolve_inner_path)?
         .unwrap();
 
-    let duplicate = find_scroll_with_name(context, &relative_path);
+    let duplicate = find_scroll_by_name(&context, &context.current_config, &name);
 
-    match duplicate {
-        Some(_) => {
-            println!("Skipped! (Duplicate)");
-        },
-        None => {
-            let scroll = ScrollConfig {
-                commands: vec![ScrollCommand {
-                    name: "default".to_string(),
-                    about: Some("Default command".to_string()),
-                    args: vec![],
-                }],
-            };
-
-            let scroll_entries = vec![
-                ScrollEntry { path: relative_path.to_string() }
-            ];
-
-            let config = PackageConfig {
-                scrolls: [&context.current_config.scrolls[..], &scroll_entries[..]].concat(),
-                ..context.current_config.to_owned()
-            };
-
-            let readme = indoc!("
-                # Generated content
-
-                Author: {{ variables.author }}
-                Scroll: {{ variables.scroll }}
-                Date: {{ now() }}
-            ");
-
-            let variables = formatdoc!("\
-                author: \"{author}\"
-                scroll: \"{scroll}\"
-            ", author = "Developer", scroll = relative_path.as_str());
-
-            save_string(&relative_path.join("templates/README.md"), readme.to_string())?;
-            save_string(&relative_path.join("variables/variables.yaml"), variables.to_string())?;
-            save_scroll(&relative_path.join("ggcode-scroll.yaml"), scroll)?;
-            save_config(&resolve_inner_path(&context.config_path)?, config)?;
-        }
+    if duplicate.is_some() {
+        return Err(format!("Duplicate name: {}. Nothing changed.", name).into());
     }
+
+    let scroll_entries = vec![
+        ScrollEntry { name, path: relative_path.to_string(), about: None }
+    ];
+
+    let config = PackageConfig {
+        scrolls: [&context.current_config.scrolls[..], &scroll_entries[..]].concat(),
+        ..context.current_config.to_owned()
+    };
+
+    let readme = indoc!("
+        # Generated content
+
+        Author: {{ variables.author }}
+        Scroll: {{ variables.scroll }}
+        Date: {{ now() }}
+    ");
+
+    let variables = formatdoc!("\
+        author: \"{author}\"
+        scroll: \"{scroll}\"
+    ", author = "Developer", scroll = relative_path.as_str());
+
+    save_string(&relative_path.join("templates/README.md"), readme.to_string())?;
+    save_string(&relative_path.join("variables/variables.yaml"), variables.to_string())?;
+    save_config(&resolve_inner_path(&context.config_path)?, config)?;
 
     Ok(())
 }
@@ -171,17 +178,14 @@ fn execute_scroll_list_command(context: &ResolvedContext, matches: &ArgMatches) 
     };
 
     table.set_format(format);
-    table.set_titles(row!["#", "Path", "Alias", "Is Valid"]);
+    table.set_titles(row!["#", "Alias", "Package", "Path"]);
 
-    for (i, (name, scroll)) in scrolls.iter().enumerate() {
+    for (i, (_, scroll)) in scrolls.iter().enumerate() {
         table.add_row(row![
             format!("{}", i + 1).as_str(),
-            scroll.scroll_path,
-            name.as_str(),
-            match scroll.scroll {
-                Some(_) => "valid",
-                None => "invalid",
-            }
+            scroll.full_name,
+            scroll.package.name,
+            scroll.scroll.path
         ]);
     }
 

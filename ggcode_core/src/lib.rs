@@ -5,11 +5,12 @@ use config::PackageConfig;
 
 pub mod config;
 pub mod scroll;
-pub mod chain;
 pub mod storage;
 pub mod utils;
 pub mod types;
 pub mod renderer;
+pub mod action;
+pub mod generator;
 
 #[derive(Debug, Clone)]
 pub struct Context {

@@ -7,10 +7,10 @@ use dialoguer::theme::ColorfulTheme;
 use lazy_static::lazy_static;
 use regex::Regex;
 
-use ggcode_core::config::{ChainEntry, PackageConfig, RepositoryEntry, ScrollEntry, TargetEntry};
+use ggcode_core::config::{ActionEntry, PackageConfig, RepositoryEntry, ScrollEntry, TargetEntry};
 use ggcode_core::Context;
 use ggcode_core::storage::{resolve_inner_path, save_config};
-use crate::terminal::TerminalInput;
+use crate::terminal::input::TerminalInput;
 
 const REPOSITORY_CENTRAL_NAME: &str = "central";
 const REPOSITORY_CENTRAL_URI: &str = "git@github.com:ntr1x/ggcode-repo-central.git";
@@ -72,7 +72,7 @@ pub fn execute_init_command(context: &Context, matches: &ArgMatches) -> Result<(
     let config = PackageConfig {
         name: name.to_string(),
         scrolls,
-        chains,
+        actions: chains,
         targets,
         repositories,
     };
@@ -87,10 +87,10 @@ fn setup_scrolls(config: &Option<PackageConfig>, _matches: &ArgMatches) -> Resul
     }
 }
 
-fn setup_chains(config: &Option<PackageConfig>, _matches: &ArgMatches) -> Result<Vec<ChainEntry>, Box<dyn Error>> {
+fn setup_chains(config: &Option<PackageConfig>, _matches: &ArgMatches) -> Result<Vec<ActionEntry>, Box<dyn Error>> {
     match config {
         None => Ok(vec!()),
-        Some(config) => Ok(config.chains.clone())
+        Some(config) => Ok(config.actions.clone())
     }
 }
 

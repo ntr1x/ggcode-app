@@ -18,19 +18,44 @@ pub struct TargetEntry {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScrollEntry {
+    pub name: String,
     pub path: String,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub about: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ChainEntry {
+pub struct ActionEntry {
+    pub name: String,
     pub path: String,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub about: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub args: Vec<ActionArg>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ActionArgKind {
+    String,
+    Boolean,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActionArg {
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub kind: Option<ActionArgKind>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub about: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub required: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PackageConfig {
     pub name: String,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub chains: Vec<ChainEntry>,
+    pub actions: Vec<ActionEntry>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub scrolls: Vec<ScrollEntry>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]

@@ -58,7 +58,9 @@ impl LuaRenderer {
             globals.set(key.as_str(), lua_value)?;
         }
 
-        let res = lua.load(format!("{}", raw.into().as_str())).eval::<String>()?;
+        let script = raw.into();
+
+        let res = lua.load(script.as_str()).eval::<String>()?;
         Ok(res)
     }
 }

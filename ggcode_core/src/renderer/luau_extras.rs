@@ -6,10 +6,15 @@ use std::path::PathBuf;
 use std::sync::mpsc::sync_channel;
 
 use console::{Color, style};
-use mlua::{AnyUserData, UserData, UserDataMethods};
+use mlua::{AnyUserData, LuaSerdeExt, UserData, UserDataMethods};
 use mlua::Error::RuntimeError;
 use run_script::ScriptOptions;
+use serde::{Deserialize, Serialize};
+use serde_yaml::Value;
 
+use crate::generator::DefaultGenerator;
+use crate::ResolvedContext;
+use crate::storage::resolve_target;
 use crate::types::AppResult;
 use crate::utils::errors::{describe_error, ErrorDescription};
 
@@ -118,6 +123,59 @@ impl UserData for LuauShell {
                 },
                 Err(e) => Err(RuntimeError(format!("Cannot evaluate script. {}", e).to_string()))
             }
+        });
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct GenerationTarget {
+    target_name: Option<String>,
+    target_path: Option<String>,
+    dry_run: Option<bool>,
+}
+
+impl UserData for GenerationTarget {}
+
+#[derive(Clone)]
+pub struct LuauEngine {
+    pub context: ResolvedContext,
+    pub generator: DefaultGenerator,
+}
+
+impl LuauEngine {
+    pub fn generate(&self, scroll_name: &String, target: &GenerationTarget, variables: &Value) -> AppResult<()> {
+        println!("scroll: {}", scroll_name);
+        println!("target_path: {}", &target.target_path.clone().unwrap_or("<none>".to_string()));
+        println!("target_name: {}", &target.target_name.clone().unwrap_or("<none>".to_string()));
+        println!("variables:\n{}", serde_yaml::to_string(variables)?);
+
+        let resolved_target_path = resolve_target(
+            &self.context,
+            target.target_name.clone(),
+            target.target_path.clone())?;
+
+        &self.generator.generate(
+            scroll_name,
+            &resolved_target_path,
+            target.dry_run.unwrap_or(false))?;
+
+        Ok(())
+    }
+}
+
+impl UserData for LuauEngine {
+    fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
+        methods.add_function("generate", |lua, (ud, scroll, target, variables): (AnyUserData, String, mlua::Value, mlua::Value)| {
+            let variables_yaml: Value = lua.from_value(variables)?;
+            let target_object: GenerationTarget = lua.from_value(target)?;
+
+            let engine = ud.borrow::<LuauEngine>()?;
+
+            match engine.generate(&scroll, &target_object, &variables_yaml) {
+                Ok(()) => {},
+                Err(e) => return Err(RuntimeError(format!("Cannot generate using scroll: {}. {}", scroll, e).to_string())),
+            };
+            Ok(())
         });
     }
 }

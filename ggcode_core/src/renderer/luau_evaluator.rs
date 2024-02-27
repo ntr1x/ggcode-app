@@ -5,7 +5,7 @@ use mlua::{Lua, LuaSerdeExt, Table};
 use serde::Serialize;
 use serde_yaml::{to_value, Value};
 
-use crate::renderer::luau_extras::{LuauShell, trace_mlua_error};
+use crate::renderer::luau_extras::{LuauEngine, LuauShell, trace_mlua_error};
 use crate::types::{AppResult, ErrorBox};
 
 #[derive(Default)]
@@ -18,6 +18,7 @@ pub struct LuauEvaluatorBuilder {
     pub globals: BTreeMap<String, Value>,
     pub paths: Vec<PathBuf>,
     pub shell: Option<LuauShell>,
+    pub engine: Option<LuauEngine>,
     // pub(crate) template: Option<LuauTemplate>,
 }
 
@@ -33,6 +34,11 @@ impl LuauEvaluatorBuilder {
 
     pub fn enable_shell(mut self, shell: LuauShell) -> LuauEvaluatorBuilder {
         self.shell = Some(shell);
+        self
+    }
+
+    pub fn enable_engine(mut self, engine: LuauEngine) -> LuauEvaluatorBuilder {
+        self.engine = Some(engine);
         self
     }
 
@@ -68,6 +74,11 @@ impl LuauEvaluatorBuilder {
             if let Some(shell) = &self.shell {
                 let userdata = lua.create_userdata(shell.clone())?;
                 globals.set("shell", userdata)?;
+            }
+
+            if let Some(engine) = &self.engine {
+                let userdata = lua.create_userdata(engine.clone())?;
+                globals.set("engine", userdata)?;
             }
 
             globals

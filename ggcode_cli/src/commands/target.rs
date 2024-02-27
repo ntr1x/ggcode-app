@@ -8,7 +8,7 @@ use prettytable::format::FormatBuilder;
 use ggcode_core::config::{PackageConfig, TargetEntry};
 use ggcode_core::ResolvedContext;
 use ggcode_core::storage::{resolve_inner_path, resolve_target_path, save_config};
-use crate::terminal::TerminalInput;
+use crate::terminal::input::TerminalInput;
 
 pub fn create_target_command() -> Command {
     Command::new("target")

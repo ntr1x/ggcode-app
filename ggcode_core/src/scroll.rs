@@ -1,37 +1,15 @@
 use std::collections::BTreeMap;
+use std::error::Error;
 
-use serde::{Deserialize, Serialize};
-
+use crate::config::{PackageConfig, ScrollEntry};
 use crate::ResolvedContext;
-use crate::storage::{load_config, load_scroll, resolve_inner_path};
+use crate::storage::{load_config, resolve_inner_path};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ScrollConfig {
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub commands: Vec<ScrollCommand>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ScrollCommand {
-    pub name: String,
-    #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub about: Option<String>,
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub args: Vec<ScrollArg>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ScrollArg {
-    pub name: String,
-    #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub about: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub required: Option<bool>,
-}
-
+#[derive(Debug, Clone)]
 pub struct ScrollRef {
-    pub scroll: Option<ScrollConfig>,
-    pub scroll_path: String,
+    pub package: PackageConfig,
+    pub scroll: ScrollEntry,
+    pub full_name: String,
 }
 
 pub fn list_scrolls(context: &ResolvedContext) -> BTreeMap<String, ScrollRef> {
@@ -48,15 +26,11 @@ pub fn list_scrolls(context: &ResolvedContext) -> BTreeMap<String, ScrollRef> {
             None => {},
             Some(repository_config) => {
                 for scroll_entry in repository_config.scrolls {
-                    let scroll_config_path = format!("{}/{}/ggcode-scroll.yaml", repository_path, scroll_entry.path);
-                    let scroll = resolve_inner_path(&scroll_config_path)
-                        .ok()
-                        .and_then(|path| load_scroll(&path).ok());
-
-                    let key = format!("{}/{}", repository.name, scroll_entry.path);
-                    scrolls.insert(key, ScrollRef {
-                        scroll,
-                        scroll_path: scroll_entry.path,
+                    let full_name = format!("{}/{}", repository.name, scroll_entry.name);
+                    scrolls.insert(full_name.clone(), ScrollRef {
+                        package: context.current_config.clone(),
+                        scroll: scroll_entry.clone(),
+                        full_name,
                     });
                 }
             },
@@ -64,16 +38,32 @@ pub fn list_scrolls(context: &ResolvedContext) -> BTreeMap<String, ScrollRef> {
     }
 
     for scroll_entry in &context.current_config.scrolls {
-        let scroll_config_path = format!("{}/ggcode-scroll.yaml", scroll_entry.path);
-        let scroll = resolve_inner_path(&scroll_config_path)
-            .ok()
-            .and_then(|path| load_scroll(&path).ok());
-        let key = format!("@/{}", scroll_entry.path);
-        scrolls.insert(key, ScrollRef {
-            scroll,
-            scroll_path: scroll_entry.path.clone(),
+        let full_name = format!("@/{}", scroll_entry.name);
+        scrolls.insert(full_name.clone(), ScrollRef {
+            package: context.current_config.clone(),
+            scroll: scroll_entry.clone(),
+            full_name,
         });
     }
 
     scrolls
+}
+
+pub fn find_scroll_by_name(_context: &ResolvedContext, package: &PackageConfig, name: &String) -> Option<ScrollEntry> {
+    package.scrolls
+        .iter()
+        .find(|e| name.eq(&e.name))
+        .map(|e| e.clone())
+}
+
+pub fn find_scroll_by_full_name(context: &ResolvedContext, name: &String) -> Result<ScrollRef, Box<dyn Error>> {
+    let package = &context.current_config;
+    match package.scrolls.iter().find(|a| name.eq(&format!("@/{}", a.name))) {
+        None => Err(format!("No scroll with name: {}", name).into()),
+        Some(scroll) => Ok(ScrollRef {
+            package: package.clone(),
+            scroll: scroll.clone(),
+            full_name: format!("@/{}", scroll.name),
+        })
+    }
 }
