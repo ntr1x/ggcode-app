@@ -45,7 +45,12 @@ impl DefaultGenerator {
     pub fn generate(&self, scroll_name: &String, target_path: &PathBuf, dry_run: bool, overrides: Option<Value>) -> AppResult<()> {
         let scroll = find_scroll_by_full_name(&self.context, scroll_name)?;
 
-        let path = resolve_inner_path(&scroll.scroll.path)?;
+        let path = match scroll.dependency_name {
+            None => resolve_inner_path(&scroll.scroll.path)?,
+            Some(n) => RelativePathBuf::from("ggcode_modules").join(&n).join(&scroll.scroll.path)
+        };
+
+        // println!("Scroll name {} -> {} -> {}", scroll_name, &target_path.as_path().to_str().unwrap().to_string(), path.to_string());
 
         let values_directory_path = path.join("variables");
         let search_locations = resolve_search_locations(&self.context.current_config);
