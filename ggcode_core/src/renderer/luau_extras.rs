@@ -143,12 +143,7 @@ pub struct LuauEngine {
 }
 
 impl LuauEngine {
-    pub fn generate(&self, scroll_name: &String, target: &GenerationTarget, variables: &Value) -> AppResult<()> {
-        // println!("scroll: {}", scroll_name);
-        // println!("target_path: {}", &target.target_path.clone().unwrap_or("<none>".to_string()));
-        // println!("target_name: {}", &target.target_name.clone().unwrap_or("<none>".to_string()));
-        // println!("variables:\n{}", serde_yaml::to_string(variables)?);
-
+    pub fn generate(&self, scroll_name: &String, target: &GenerationTarget, overrides: Option<Value>) -> AppResult<()> {
         let resolved_target_path = resolve_target(
             &self.context,
             target.target_name.clone(),
@@ -157,7 +152,8 @@ impl LuauEngine {
         self.generator.generate(
             scroll_name,
             &resolved_target_path,
-            target.dry_run.unwrap_or(false))?;
+            target.dry_run.unwrap_or(false),
+            overrides)?;
 
         Ok(())
     }
@@ -166,12 +162,12 @@ impl LuauEngine {
 impl UserData for LuauEngine {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_function("generate", |lua, (ud, scroll, target, variables): (AnyUserData, String, mlua::Value, mlua::Value)| {
-            let variables_yaml: Value = lua.from_value(variables)?;
+            let variables_yaml: Option<Value> = lua.from_value(variables).ok();
             let target_object: GenerationTarget = lua.from_value(target)?;
 
             let engine = ud.borrow::<LuauEngine>()?;
 
-            match engine.generate(&scroll, &target_object, &variables_yaml) {
+            match engine.generate(&scroll, &target_object, variables_yaml) {
                 Ok(()) => {},
                 Err(e) => return Err(RuntimeError(format!("Cannot generate using scroll: {}. {}", scroll, e).to_string())),
             };

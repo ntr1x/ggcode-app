@@ -74,7 +74,7 @@ pub fn execute_generate_scroll_command(context: &ResolvedContext, name: &String,
         wrapped_observers: vec![]
     };
 
-    generator.generate(name, &resolved_target_path, *dry_run)?;
+    generator.generate(name, &resolved_target_path, *dry_run, None)?;
 
     Ok(())
 }

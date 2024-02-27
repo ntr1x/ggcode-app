@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use console::style;
 use relative_path::RelativePathBuf;
+use serde_yaml::Value;
 
 use crate::generator::GeneratorEvent::{Finish, Start};
 use crate::renderer::builder::RendererBuilder;
@@ -10,6 +11,7 @@ use crate::ResolvedContext;
 use crate::scroll::find_scroll_by_full_name;
 use crate::storage::{load_templates, load_variables, resolve_inner_path, resolve_search_locations, save_target_file};
 use crate::types::AppResult;
+use crate::utils::merge_yaml;
 
 #[derive(Clone)]
 pub struct DefaultGenerator {
@@ -40,7 +42,7 @@ impl DefaultGenerator {
         }
     }
 
-    pub fn generate(&self, scroll_name: &String, target_path: &PathBuf, dry_run: bool) -> AppResult<()> {
+    pub fn generate(&self, scroll_name: &String, target_path: &PathBuf, dry_run: bool, overrides: Option<Value>) -> AppResult<()> {
         let scroll = find_scroll_by_full_name(&self.context, scroll_name)?;
 
         let path = resolve_inner_path(&scroll.scroll.path)?;
@@ -48,7 +50,11 @@ impl DefaultGenerator {
         let values_directory_path = path.join("variables");
         let search_locations = resolve_search_locations(&self.context.current_config);
 
-        let variables = load_variables(&values_directory_path, &search_locations)?;
+        let mut variables = load_variables(&values_directory_path, &search_locations)?;
+
+        if let Some(o) = overrides {
+            merge_yaml(&mut variables, o);
+        }
 
         let mut builder = RendererBuilder::new();
 
