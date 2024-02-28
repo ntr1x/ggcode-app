@@ -160,7 +160,7 @@ fn execute_scroll_add_command(context: &ResolvedContext, matches: &ArgMatches) -
         scroll: \"{scroll}\"
     ", author = "Developer", scroll = relative_path.as_str());
 
-    save_string(&relative_path.join("templates/README.md"), readme.to_string())?;
+    save_string(&relative_path.join("templates/README.md.tera"), readme.to_string())?;
     save_string(&relative_path.join("variables/variables.yaml"), variables.to_string())?;
     save_config(&resolve_inner_path(&context.config_path)?, config)?;
 

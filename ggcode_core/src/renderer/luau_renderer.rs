@@ -5,6 +5,8 @@ use std::fs;
 use mlua::{Lua, LuaSerdeExt};
 use serde_yaml::Value;
 
+use crate::luau::luau_json::LuauJson;
+use crate::luau::luau_yaml::LuauYaml;
 use crate::renderer::builder::RendererBuilder;
 use crate::renderer::luau_extras::{LuauTemplate, trace_mlua_error};
 use crate::types::ErrorBox;
@@ -32,6 +34,9 @@ impl LuaRenderer {
         })?;
 
         globals.set("template", &template)?;
+
+        globals.set("yaml", &lua.create_userdata(LuauYaml)?)?;
+        globals.set("json", &lua.create_userdata(LuauJson)?)?;
 
         let script = self.templates
             .get(name_string)
