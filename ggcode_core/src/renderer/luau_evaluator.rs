@@ -5,6 +5,8 @@ use mlua::{Lua, LuaSerdeExt, Table};
 use serde::Serialize;
 use serde_yaml::{to_value, Value};
 
+use crate::luau::luau_json::LuauJson;
+use crate::luau::luau_yaml::LuauYaml;
 use crate::renderer::luau_extras::{LuauEngine, LuauShell, trace_mlua_error};
 use crate::types::{AppResult, ErrorBox};
 
@@ -70,6 +72,9 @@ impl LuauEvaluatorBuilder {
                 let lua_value = lua.to_value(value)?;
                 globals.set(key.as_str(), lua_value)?;
             }
+
+            globals.set("yaml", lua.create_userdata(LuauYaml)?)?;
+            globals.set("json", lua.create_userdata(LuauJson)?)?;
 
             if let Some(shell) = &self.shell {
                 let userdata = lua.create_userdata(shell.clone())?;

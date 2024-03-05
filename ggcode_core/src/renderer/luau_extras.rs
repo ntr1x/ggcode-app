@@ -1,4 +1,4 @@
-use std::{cmp, thread};
+use std::{cmp, fs, thread};
 use std::collections::HashMap;
 use std::error::Error;
 use std::io::{BufRead, BufReader};
@@ -14,7 +14,7 @@ use serde_yaml::Value;
 
 use crate::generator::DefaultGenerator;
 use crate::ResolvedContext;
-use crate::storage::resolve_target;
+use crate::storage::{load_string, resolve_target};
 use crate::types::AppResult;
 use crate::utils::errors::{describe_error, ErrorDescription};
 
@@ -180,7 +180,11 @@ pub fn trace_mlua_error(script: &String, e: &Box<dyn Error>) {
     let description = describe_error(&e);
     match description {
         Ok(Some(ErrorDescription::SourceError(data))) => {
-            let vec: Vec<&str> = script.lines().collect();
+            let source = match data.is_pointed {
+                true => fs::read_to_string(data.location).unwrap(),
+                false => script.clone(),
+            };
+            let vec: Vec<&str> = source.lines().collect();
             let mut area_vec = vec![];
             let lower = cmp::max(0, data.line as i32 - 1) as usize;
             let upper = cmp::min(data.line + 1, vec.len() - 1) + 1;
