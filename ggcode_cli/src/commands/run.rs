@@ -11,7 +11,7 @@ use ggcode_core::{Context, ResolvedContext};
 use ggcode_core::action::{ActionRef, find_action_by_full_name, list_actions};
 use ggcode_core::generator::DefaultGenerator;
 use ggcode_core::renderer::luau_evaluator::LuauEvaluatorBuilder;
-use ggcode_core::renderer::luau_extras::LuauEngine;
+use ggcode_core::renderer::luau_extras::{LuauEngine, LuauShell};
 use ggcode_core::storage::{load_string, resolve_search_locations};
 
 pub fn create_run_command(context: &Context) -> Result<Command, Box<dyn Error>> {
@@ -96,6 +96,8 @@ pub fn execute_run_action_command(context: &ResolvedContext, name: &String, matc
         context: context.clone(),
         wrapped_observers: vec![]
     };
+
+    builder = builder.enable_shell(LuauShell);
 
     builder = builder.enable_engine(LuauEngine {
         context: context.clone(),
