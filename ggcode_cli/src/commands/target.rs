@@ -46,6 +46,7 @@ pub fn execute_target_command(context: ResolvedContext, matches: &ArgMatches) ->
         Some(("list", sub_matches)) => execute_target_list_command(context, sub_matches),
         Some(("add", sub_matches)) => execute_target_add_command(context, sub_matches),
         Some(("remove", sub_matches)) => execute_target_remove_command(context, sub_matches),
+        Some((other, _)) => return Err(format!("Unsupported command: {}", other).into()),
         _ => unreachable!()
     }
 }

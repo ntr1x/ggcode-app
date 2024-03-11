@@ -45,7 +45,7 @@ fn create_scroll_remove_command() -> Command {
         .about("Remove a scroll")
         .alias("rm")
         .arg(arg!(-n --name <String> "Name of the scroll"))
-        .arg(arg!(-f --force "Force removal of the scroll directory").action(ArgAction::Set))
+        .arg(arg!(-f --force "Force removal of the scroll directory").action(ArgAction::Set).required(false).num_args(0))
 }
 
 pub fn execute_scroll_command(context: &ResolvedContext, matches: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
@@ -53,7 +53,8 @@ pub fn execute_scroll_command(context: &ResolvedContext, matches: &ArgMatches) -
         Some(("list", sub_matches)) => execute_scroll_list_command(context, sub_matches),
         Some(("add", sub_matches)) => execute_scroll_add_command(context, sub_matches),
         Some(("remove", sub_matches)) => execute_scroll_remove_command(context, sub_matches),
-        _ => unreachable!()
+        Some((other, _)) => return Err(format!("Unsupported command: {}", other).into()),
+        None => unreachable!()
     }
 }
 

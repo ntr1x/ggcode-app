@@ -35,7 +35,11 @@ impl <'a> TerminalFlag<'a> {
     }
 
     pub fn read<T, F: Fn(bool) -> AppResult<T>>(&self, convert: F) -> AppResult<Option<T>> {
-        let input = self.matches.get_one::<bool>(&self.name.as_str());
+        // let input = self.matches.get_one::<bool>(&self.name.as_str());
+        let input = match self.matches.contains_id(&self.name.as_str()) {
+            true => Some(true),
+            false => None
+        };
 
         loop {
             let option = match (input, &self.required) {

@@ -23,13 +23,13 @@ pub fn list_scrolls(context: &ResolvedContext) -> BTreeMap<String, ScrollRef> {
             .ok()
             .and_then(|path| load_config(&path).ok());
 
-        match config {
+        match &config {
             None => {},
             Some(repository_config) => {
-                for scroll_entry in repository_config.scrolls {
+                for scroll_entry in &repository_config.scrolls {
                     let full_name = format!("{}/{}", repository.name, scroll_entry.name);
                     scrolls.insert(full_name.clone(), ScrollRef {
-                        package: context.current_config.clone(),
+                        package: repository_config.clone(),
                         scroll: scroll_entry.clone(),
                         full_name,
                         dependency_name: Some(repository.name.clone()),

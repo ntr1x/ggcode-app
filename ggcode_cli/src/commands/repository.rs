@@ -46,6 +46,7 @@ pub fn execute_repository_command(context: ResolvedContext, matches: &ArgMatches
         Some(("list", sub_matches)) => execute_repository_list_command(context, sub_matches),
         Some(("add", sub_matches)) => execute_repository_add_command(context, sub_matches),
         Some(("remove", sub_matches)) => execute_repository_remove_command(context, sub_matches),
+        Some((other, _)) => return Err(format!("Unsupported command: {}", other).into()),
         _ => unreachable!()
     }
 }

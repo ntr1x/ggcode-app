@@ -49,6 +49,7 @@ pub fn execute_action_command(context: &ResolvedContext, matches: &ArgMatches) -
         Some(("list", sub_matches)) => execute_action_list_command(context, sub_matches),
         Some(("add", sub_matches)) => execute_action_add_command(context, sub_matches),
         Some(("remove", sub_matches)) => execute_action_remove_command(context, sub_matches),
+        Some((other, _)) => return Err(format!("Unsupported command: {}", other).into()),
         _ => unreachable!()
     }
 }
@@ -157,13 +158,13 @@ fn execute_action_list_command(context: &ResolvedContext, matches: &ArgMatches) 
     };
 
     table.set_format(format);
-    table.set_titles(row!["#", "Path", "Alias"]);
+    table.set_titles(row!["#", "Name", "Path"]);
 
     for (i, (name, command)) in commands.iter().enumerate() {
         table.add_row(row![
             format!("{}", i + 1).as_str(),
-            command.full_name,
             name.as_str(),
+            command.action.path,
         ]);
     }
 
