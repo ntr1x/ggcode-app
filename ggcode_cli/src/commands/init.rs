@@ -12,8 +12,8 @@ use ggcode_core::Context;
 use ggcode_core::storage::{resolve_inner_path, save_config};
 use crate::terminal::input::TerminalInput;
 
-const REPOSITORY_CENTRAL_NAME: &str = "central";
-const REPOSITORY_CENTRAL_URI: &str = "git@github.com:ntr1x/ggcode-repo-central.git";
+const REPOSITORY_CORE_NAME: &str = "core";
+const REPOSITORY_CORE_URI: &str = "git@github.com:ntr1x/ggcode-repo-core.git";
 
 const TARGET_WORKDIR_NAME: &str = "@";
 const TARGET_WORKDIR_PATH: &str = "target";
@@ -26,7 +26,7 @@ pub fn create_init_command() -> Command {
             .value_name("Name:URI")
             .help(format!(
                 "Add a repository. Usage examples:\n\t{}\n\t{}",
-                format!("--repository {}:{}", style("central").yellow(), style("git@github.com:ntr1x/ggcode-repo-central.git").cyan()),
+                format!("--repository {}:{}", style("core").yellow(), style("git@github.com:ntr1x/ggcode-repo-core.git").cyan()),
                 format!("--repository {}:{}", style("compose").yellow(), style("https://github.com/ntr1x/ggcode-repo-compose.git").cyan()),
             ))
             .num_args(0..))
@@ -140,15 +140,15 @@ fn setup_repositories(config: &Option<PackageConfig>, matches: &ArgMatches) -> R
 
         if repositories.len() == 0 {
             let add_repository = Confirm::with_theme(&ColorfulTheme::default())
-                .with_prompt("Should we add central repository?")
+                .with_prompt("Should we add core repository?")
                 .default(true)
                 .interact()
                 .unwrap();
 
             if add_repository {
                 repositories.push(RepositoryEntry {
-                    name: REPOSITORY_CENTRAL_NAME.to_string(),
-                    uri: REPOSITORY_CENTRAL_URI.to_string(),
+                    name: REPOSITORY_CORE_NAME.to_string(),
+                    uri: REPOSITORY_CORE_URI.to_string(),
                 })
             }
         }

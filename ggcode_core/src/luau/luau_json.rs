@@ -9,7 +9,7 @@ pub struct LuauJson;
 
 impl LuauJson {
     fn stringify(value: &Value) -> AppResult<String> {
-        let output = serde_json::to_string(value)?;
+        let output = serde_json::to_string_pretty(value)?;
         return Ok(output)
     }
 }
