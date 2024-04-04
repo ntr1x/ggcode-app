@@ -4,6 +4,7 @@ use tera::{Context, Tera};
 
 use crate::renderer::builder::RendererBuilder;
 use crate::renderer::tera_extras::format_ansi;
+use crate::renderer::tera_functions::uuid_v4;
 
 #[derive(Debug)]
 pub struct TeraRenderer {
@@ -45,6 +46,8 @@ impl RendererBuilder {
             tera.add_template_file(path, Some(&name))?;
         }
 
+        tera.register_function("uuid_v4", uuid_v4);
+
         let renderer = TeraRenderer {
             context,
             tera
@@ -57,6 +60,7 @@ impl RendererBuilder {
 #[cfg(test)]
 mod tests {
     use std::error::Error;
+
     use crate::renderer::builder::RendererBuilder;
     use crate::renderer::tera_renderer::TeraRenderer;
 

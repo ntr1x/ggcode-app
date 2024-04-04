@@ -63,7 +63,12 @@ impl DefaultGenerator {
 
         let mut builder = RendererBuilder::new();
 
-        for (key, value) in variables.as_mapping().unwrap() {
+        let variables_mapping = match variables.as_mapping() {
+            Some(m) => m,
+            None => return Err(format!("Cannot generate content using {} scroll. Invalid variables.", style(scroll_name).yellow()).into())
+        };
+
+        for (key, value) in variables_mapping {
             builder = builder.with_value(key.as_str().unwrap().to_string(), value);
         }
 
@@ -120,7 +125,10 @@ impl DefaultGenerator {
                         style("[DONE]").green(),
                         file_path.to_str().unwrap().to_string());
                     self.notify(Finish(message));
-                    save_target_file(&target_path, &target_file_relative_path, &file_content)?;
+                    let file_name = file_path.file_name().unwrap().to_str().unwrap();
+                    if !file_name.starts_with("!") {
+                        save_target_file(&target_path, &target_file_relative_path, &file_content)?;
+                    }
                 }
             }
         }

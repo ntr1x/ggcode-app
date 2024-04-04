@@ -6,6 +6,7 @@ use mlua::{Lua, LuaSerdeExt};
 use serde_yaml::Value;
 
 use crate::luau::luau_json::LuauJson;
+use crate::luau::luau_uuid::LuauUuid;
 use crate::luau::luau_yaml::LuauYaml;
 use crate::renderer::builder::RendererBuilder;
 use crate::renderer::luau_extras::{LuauTemplate, trace_mlua_error};
@@ -35,8 +36,12 @@ impl LuaRenderer {
 
         globals.set("template", &template)?;
 
+        globals.set("null", lua.null())?;
+        globals.set("array_mt", lua.array_metatable())?;
         globals.set("yaml", &lua.create_userdata(LuauYaml)?)?;
         globals.set("json", &lua.create_userdata(LuauJson)?)?;
+        globals.set("uuid", lua.create_userdata(LuauUuid)?)?;
+
 
         let script = self.templates
             .get(name_string)

@@ -143,24 +143,27 @@ fn describe_mlua_error(e: &Box<dyn Error>) -> AppResult<Option<ErrorDescription>
         lazy_static! {
             static ref RE_ERROR_V1: Regex = Regex::new(r#"(?m)^((?P<type>[^:]*): )?\[string "(?P<location>[^"]*)"]:(?P<line>[\d]+): (?P<details>.*)$"#).unwrap();
             static ref RE_ERROR_V2: Regex = Regex::new(r#"(?m)^((?P<type>[^:]*): )?(?P<location>[^:]*):(?P<line>[\d]+): (?P<details>.*)$"#).unwrap();
+            static ref RE_ERROR_STACK_OVERFLOW: Regex = Regex::new(r#"(?m)^C stack overflow$"#).unwrap();
         }
 
-        return match (&RE_ERROR_V1.captures(&message), &RE_ERROR_V2.captures(&message)) {
-            (None, None) => Ok(None),
-            (Some(v), _) => {
-                let location = v.name("location").unwrap().as_str().to_string();
-                let details = v.name("details").unwrap().as_str().to_string();
-                let line = v.name("line").unwrap().as_str().parse::<usize>()?;
-                let line = cmp::max(0, (line as i32) - 1) as usize;
-                Ok(Some(ErrorDescription::SourceError(SourceErrorData { location, line, details, is_pointed: false })))
-            },
-            (_, Some(v)) => {
-                let location = v.name("location").unwrap().as_str().to_string();
-                let details = v.name("details").unwrap().as_str().to_string();
-                let line = v.name("line").unwrap().as_str().parse::<usize>()?;
-                let line = cmp::max(0, (line as i32) - 1) as usize;
-                Ok(Some(ErrorDescription::SourceError(SourceErrorData { location, line, details, is_pointed: true })))
-            }
+        if let Some(v) = &RE_ERROR_STACK_OVERFLOW.captures(&message) {
+            return Ok(Some(ErrorDescription::SourceError(SourceErrorData { location: "".into(), line: 0, details: message, is_pointed: false })))
+        }
+
+        if let Some(v) = &RE_ERROR_V1.captures(&message) {
+            let location = v.name("location").unwrap().as_str().to_string();
+            let details = v.name("details").unwrap().as_str().to_string();
+            let line = v.name("line").unwrap().as_str().parse::<usize>()?;
+            let line = cmp::max(0, (line as i32) - 1) as usize;
+            return Ok(Some(ErrorDescription::SourceError(SourceErrorData { location, line, details, is_pointed: false })))
+        }
+
+        if let Some(v) = &RE_ERROR_V2.captures(&message) {
+            let location = v.name("location").unwrap().as_str().to_string();
+            let details = v.name("details").unwrap().as_str().to_string();
+            let line = v.name("line").unwrap().as_str().parse::<usize>()?;
+            let line = cmp::max(0, (line as i32) - 1) as usize;
+            return Ok(Some(ErrorDescription::SourceError(SourceErrorData { location, line, details, is_pointed: true })))
         }
     }
     Ok(None)

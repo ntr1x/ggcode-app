@@ -26,3 +26,4 @@ mlua = { version = "0.9.5", features = ["luau", "serialize"] }
 run_script = "0.10.1"
 indicatif = "0.17.8"
 console = "0.15.8"
+uuid = { version = "1.8.0", features = ["v4"] }

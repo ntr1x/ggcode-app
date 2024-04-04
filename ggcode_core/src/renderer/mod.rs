@@ -6,3 +6,4 @@ pub mod tera_renderer;
 pub mod noop_renderer;
 pub mod tera_extras;
 pub mod luau_extras;
+mod tera_functions;

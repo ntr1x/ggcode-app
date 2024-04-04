@@ -181,7 +181,9 @@ pub fn trace_mlua_error(script: &String, e: &Box<dyn Error>) {
     match description {
         Ok(Some(ErrorDescription::SourceError(data))) => {
             let source = match data.is_pointed {
-                true => fs::read_to_string(data.location).unwrap(),
+                true => {
+                    fs::read_to_string(data.location).unwrap()
+                },
                 false => script.clone(),
             };
             let vec: Vec<&str> = source.lines().collect();
