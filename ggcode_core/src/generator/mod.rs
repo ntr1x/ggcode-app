@@ -126,8 +126,15 @@ impl DefaultGenerator {
                         file_path.to_str().unwrap().to_string());
                     self.notify(Finish(message));
                     let file_name = file_path.file_name().unwrap().to_str().unwrap();
-                    if !file_name.starts_with("!") {
-                        save_target_file(&target_path, &target_file_relative_path, &file_content)?;
+
+                    if file_name.starts_with("!") {
+                        // ignore
+                    } else if file_name.starts_with("+") {
+                        let alternate_name = file_name.strip_prefix("+").unwrap().to_string();
+                        let alternate_path = target_file_relative_path.with_file_name(alternate_name);
+                        save_target_file(&target_path, &alternate_path, &file_content, false)?;
+                    } else {
+                        save_target_file(&target_path, &target_file_relative_path, &file_content, true)?;
                     }
                 }
             }

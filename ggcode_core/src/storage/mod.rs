@@ -182,20 +182,23 @@ pub fn load_string(_config: &PackageConfig, relative_path: &RelativePathBuf) -> 
     Ok(string)
 }
 
-pub fn save_target_file(target_dir: &PathBuf, relative_path: &RelativePathBuf, content: &String) -> Result<(), Box<dyn Error>> {
+pub fn save_target_file(target_dir: &PathBuf, relative_path: &RelativePathBuf, content: &String, overwrite: bool) -> Result<(), Box<dyn Error>> {
     let path = relative_path.to_path(target_dir);
 
     let prefix = path.parent().unwrap();
     fs::create_dir_all(prefix).unwrap();
 
-    let mut f = fs::OpenOptions::new()
-        .write(true)
-        .truncate(true)
-        .create(true)
-        .open(path)
-        .expect("Couldn't open target file");
+    if overwrite || !path.exists() {
+        let mut f = fs::OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .create(true)
+            .open(path)
+            .expect("Couldn't open target file");
 
-    f.write_all(content.as_bytes()).unwrap();
+        f.write_all(content.as_bytes()).unwrap();
+    }
+
     Ok(())
 }
 
