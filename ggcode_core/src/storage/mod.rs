@@ -76,23 +76,14 @@ pub fn resolve_target(context: &ResolvedContext, target_name: Option<String>, ta
     }
 }
 
-// fn resolve_dependencies(config: &PackageConfig) -> AppResult<BTreeMap<String, PackageConfig>> {
-//     let mut dependencies: BTreeMap<String, PackageConfig> = BTreeMap::new();
-//     for dependency in &config.repositories {
-//         let relative_path = RelativePath::new("ggcode_modules")
-//             .join(&dependency.name)
-//             .join(&DEFAULT_CONFIG_NAME);
-//         let dependency_config = load_config(&relative_path)?;
-//         dependencies.insert(dependency.name.clone(), dependency_config);
-//     }
-//     Ok(dependencies)
-// }
-
 pub fn resolve_search_locations(config: &PackageConfig) -> Vec<RelativePathBuf> {
     let mut locations: Vec<RelativePathBuf> = vec![];
     let path = RelativePathBuf::from("lib")
         .join("?.luau");
     locations.push(path);
+    let local_path = RelativePathBuf::from("local")
+        .join("?.luau");
+    locations.push(local_path);
     for dependency in &config.repositories {
         let path = RelativePathBuf::from("ggcode_modules")
             .join(&dependency.name)
@@ -102,15 +93,6 @@ pub fn resolve_search_locations(config: &PackageConfig) -> Vec<RelativePathBuf> 
     }
     locations
 }
-
-// pub fn resolve_package(config: &PackageConfig) -> AppResult<PackageData> {
-//     let dependencies = resolve_dependencies(config)?;
-//     let data = PackageData {
-//         config: config.clone(),
-//         dependencies,
-//     };
-//     Ok(data)
-// }
 
 pub fn save_config(relative_path: &RelativePathBuf, config: PackageConfig) -> Result<(), Box<dyn Error>> {
     let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
@@ -134,25 +116,6 @@ pub fn rm_scroll(relative_path: &RelativePathBuf) -> Result<(), Box<dyn Error>> 
     fs::remove_dir_all(path)?;
     Ok(())
 }
-
-// pub fn save_scroll(relative_path: &RelativePathBuf, scroll: ScrollConfig) -> Result<(), Box<dyn Error>> {
-//     let current_dir = env::current_dir().unwrap().canonicalize().unwrap();
-//     let path = relative_path.to_path(current_dir);
-//
-//     let prefix = path.parent().unwrap();
-//     fs::create_dir_all(prefix).unwrap();
-//
-//     let f = fs::OpenOptions::new()
-//         .write(true)
-//         .truncate(true)
-//         .create(true)
-//         .open(path)
-//         .expect("Couldn't open scroll file");
-//
-//     serde_yaml::to_writer(f, &scroll).unwrap();
-//
-//     Ok(())
-// }
 
 pub fn save_string(relative_path: &RelativePathBuf, content: String) -> Result<(), Box<dyn Error>> {
     let current_dir = env::current_dir().unwrap().canonicalize().unwrap();

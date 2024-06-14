@@ -14,7 +14,6 @@ use crate::commands::run::{create_run_command, execute_run_command};
 use crate::commands::scroll::{create_scroll_command, execute_scroll_command};
 use crate::commands::target::{create_target_command, execute_target_command};
 
-mod history;
 mod init;
 mod install;
 mod repository;

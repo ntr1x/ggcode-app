@@ -14,7 +14,7 @@ use serde_yaml::Value;
 
 use crate::generator::DefaultGenerator;
 use crate::ResolvedContext;
-use crate::storage::{load_string, resolve_target};
+use crate::storage::{resolve_target};
 use crate::types::AppResult;
 use crate::utils::errors::{describe_error, ErrorDescription};
 

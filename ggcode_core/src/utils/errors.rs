@@ -3,7 +3,6 @@ use std::error::Error;
 use console::style;
 
 use lazy_static::lazy_static;
-use mlua::ExternalError;
 use regex::Regex;
 
 use crate::types::{AppResult, ErrorBox};
@@ -146,7 +145,7 @@ fn describe_mlua_error(e: &Box<dyn Error>) -> AppResult<Option<ErrorDescription>
             static ref RE_ERROR_STACK_OVERFLOW: Regex = Regex::new(r#"(?m)^C stack overflow$"#).unwrap();
         }
 
-        if let Some(v) = &RE_ERROR_STACK_OVERFLOW.captures(&message) {
+        if let Some(_) = &RE_ERROR_STACK_OVERFLOW.captures(&message) {
             return Ok(Some(ErrorDescription::SourceError(SourceErrorData { location: "".into(), line: 0, details: message, is_pointed: false })))
         }
 

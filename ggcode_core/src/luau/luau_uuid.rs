@@ -16,7 +16,7 @@ impl LuauUuid {
 
 impl UserData for LuauUuid {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
-        methods.add_function("v4", |lua, (_ud): (AnyUserData)| {
+        methods.add_function("v4", |_, _ud: AnyUserData| {
             return Self::v4().or_else(|e| Err(RuntimeError(format!("Cannot generate UUID.V4 value. {}", e).to_string())));
         })
     }
